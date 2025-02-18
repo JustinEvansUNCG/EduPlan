@@ -1,2 +1,2 @@
 # EduPlan
-Capstone Project
+CSC 490 Capstone Project
