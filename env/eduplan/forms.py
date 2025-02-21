@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 
 
-todos = ["Learn Flask", "Setup venv", "Build a cool app"]
+todos = ["Foo"]
 
 #basic flask form
 class TodoForm(FlaskForm):
