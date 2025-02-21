@@ -10,3 +10,6 @@ app.config['SECRET-KEY'] = 'mysecret'
 def index():
     return "Hello World"
 
+@app.route('/content', methods=["GET", "POST"])
+def course_content():
+    return render_template('Course_content.html')

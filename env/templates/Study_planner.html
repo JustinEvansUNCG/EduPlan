@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Planner - EDUPlan</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #2c3e50;
+            color: #fff;
+            text-align: center;
+            padding: 20px 0;
+        }
+        header h1 {
+            font-size: 36px;
+        }
+        nav ul {
+            list-style: none;
+            padding: 0;
+            text-align: center;
+        }
+        nav ul li {
+            display: inline;
+            margin: 0 15px;
+        }
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 18px;
+        }
+        section {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .study-preferences, .study-plan {
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            margin-bottom: 20px;
+        }
+        select, input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #2c3e50;
+            color: #fff;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #1a252f;
+        }
+        .message {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #4CAF50;
+            display: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+        .remove-btn {
+            background-color: #d9534f;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .remove-btn:hover {
+            background-color: #c9302c;
+        }
+        footer {
+            background-color: #2c3e50;
+            color: #fff;
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>EDUPlan - Study Planner</h1>
+        <nav>
+            <ul>
+                <li><a href="home.html">Home</a></li>
+                <li><a href="course-selection.html">Course Selection</a></li>
+                <li><a href="study-planner.html">Study Planner</a></li>
+                <li><a href="resources.html">Resources</a></li>
+                <li><a href="login.html">Login/Signup</a></li>
+                <li><a href="admin.html">Admin</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="study-preferences">
+        <h2>Set Your Study Preferences</h2>
+        <p>Specify times when you do <strong>not</strong> want to study.</p>
+        
+        <label for="noStudyDays">Select Days You Don't Want to Study:</label>
+        <select id="noStudyDays" multiple>
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+            <option value="Saturday">Saturday</option>
+            <option value="Sunday">Sunday</option>
+        </select>
+
+        <label for="noStudyTime">Select Time Range to Avoid:</label>
+        <input type="time" id="noStudyStart"> to 
+        <input type="time" id="noStudyEnd">
+
+        <button onclick="savePreferences()">Save Preferences</button>
+        <p id="preferencesMessage" class="message"></p>
+    </section>
+
+    <section class="study-plan">
+        <h2>Modify Your Study Plan</h2>
+        <p>View and adjust your study sessions below:</p>
+
+        <table id="studyPlanTable">
+            <thead>
+                <tr>
+                    <th>Course</th>
+                    <th>Study Time</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+
+        <h3>Add Study Session</h3>
+        <input type="text" id="courseName" placeholder="Course Name">
+        <input type="datetime-local" id="studyTime">
+        <button onclick="addStudySession()">Add Study Session</button>
+        <p id="studyPlanMessage" class="message"></p>
+    </section>
+
+    <footer>
+        <p>&copy; 2025 EDUPlan. All rights reserved.</p>
+    </footer>
+</body>
+</html>
