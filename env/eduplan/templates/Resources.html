@@ -1,110 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Study Resources - EDUPlan</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        header {
-            background-color: #2c3e50;
-            color: #fff;
-            text-align: center;
-            padding: 20px 0;
-        }
-        header h1 {
-            font-size: 36px;
-        }
-        header nav ul {
-            list-style: none;
-            padding: 0;
-        }
-        header nav ul li {
-            display: inline;
-            margin: 0 15px;
-        }
-        header nav ul li a {
-            color: #fff;
-            text-decoration: none;
-        }
-        section {
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        .chatbox {
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background-color: #f9f9f9;
-        }
-        .chatbox input {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        .chatbox button {
-            width: 100%;
-            padding: 10px;
-            background-color: #2c3e50;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            margin-top: 5px;
-            cursor: pointer;
-        }
-        footer {
-            background-color: #2c3e50;
-            color: #fff;
-            text-align: center;
-            padding: 20px 0;
-            margin-top: 20px;
-        }
-    </style>
-</head>
-<body>
-    <header>
-        <h1>EDUPlan - Study Resources</h1>
-        <nav>
-            <ul>
-                <li><a href="home.html">Home</a></li>
-                <li><a href="course-selection.html">Course Selection</a></li>
-                <li><a href="study-planner.html">Study Planner</a></li>
-                <li><a href="resources.html">Resources</a></li>
-                <li><a href="login.html">Login/Signup</a></li>
-                <li><a href="admin.html">Admin</a></li>
-            </ul>
-        </nav>
-    </header>
+{% extends "base.html" %}
+{% block title %}resources{% endblock %}
+{% block head %}
+{{ super() }}
+{% endblock %}
+{% block content %}
+<section>
+    <h2>Find the Best Study Materials</h2>
+    <p>Get recommended books, videos, and study tools to help you excel in your courses.</p>
+</section>
 
-    <section>
-        <h2>Find the Best Study Materials</h2>
-        <p>Get recommended books, videos, and study tools to help you excel in your courses.</p>
-    </section>
-
-    <section class="chatbox">
-        <h3>Ask a Question About Study Resources or Explaination on a Topic</h3>
-        <input type="text" id="resourceQuestionInput" placeholder="Type your question...">
-        <button onclick="askResourceQuestion()">Ask</button>
-        <p id="resourceResponse"></p>
-    </section>
-
-    <footer>
-        <p>&copy; 2025 EDUPlan. All rights reserved.</p>
-    </footer>
-
-</body>
-</html>
+<section class="chatbox">
+    <h3>Ask a Question About Study Resources or Explaination on a Topic</h3>
+    <input type="text" id="resourceQuestionInput" placeholder="Type your question...">
+    <button onclick="askResourceQuestion()">Ask</button>
+    <p id="resourceResponse"></p>
+</section>
+{% endblock %}

@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+
+<head>
+    {% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>{% block title %}{% endblock %} - EDUPlan</title>
+    {% endblock %}
+</head>
+
+<body>
+    <header>
+        <h1>EDUPlan</h1>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+
+                <li><a href="{{ url_for('course_content') }}">Course Selection</a></li>
+                <li><a href="{{ url_for('study_planner') }}">Study Planner</a></li>
+                <li><a href="{{ url_for('resources') }}">Resources</a></li>
+                <li><a href="{{ url_for('login') }}">Login/Signup</a></li>
+                <li><a href="{{ url_for('admin') }}">Admin</a></li>
+            </ul>
+        </nav>
+    </header>
+    <div id="content">{% block content %}{% endblock %}</div>
+    <div id="footer">
+        {% block footer %}
+        <footer>
+            <p>&copy; 2025 EDUPlan. All rights reserved.</p>.
+        </footer>
+        {% endblock %}
+    </div>
+</body>
+
+</html>
