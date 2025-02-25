@@ -7,7 +7,7 @@ conn = psycopg2.connect(
     user = "postgres",
     password = "definitelynotthepassword"
 )
-#testing 3
+#testing 4
 cur = conn.cursor()
 insert_query = """
 INSERT INTO users (email, password_hash, role) 
