@@ -1,4 +1,4 @@
-//geeks for geeks js
+//geeks for geeks js code
 //https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
 let date = new Date();
