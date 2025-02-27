@@ -1,15 +1,13 @@
 from flask import Flask
-
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from config import Config
 
 app = Flask(__name__)
 
-# This is needed to use forms, but will be kept in a more secret place at a later date
-app.secret_key="anystringhere"
+app.config.from_object(Config)
 
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
-
-
-import eduplan.routes
-
-
-
+from eduplan import routes, models
