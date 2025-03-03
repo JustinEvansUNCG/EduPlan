@@ -1,13 +1,30 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from config import Config
+from flask_login import LoginManager
+from configs import Config
 
-app = Flask(__name__)
+db = SQLAlchemy()
+migrate = Migrate()
+login_manager = LoginManager()
 
-app.config.from_object(Config)
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
 
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+    db.init_app(app)
+    migrate.init_app(app, db)
+    login_manager.init_app(app)
 
-from eduplan import routes, models
+    # Import models
+    from eduplan.models import User
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id)) 
+
+    # Import routes
+    from eduplan.routes import main_blueprint
+    app.register_blueprint(main_blueprint)
+
+    return app
