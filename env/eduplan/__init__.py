@@ -16,14 +16,12 @@ def create_app():
     migrate.init_app(app, db)
     login_manager.init_app(app)
 
-    # Import models
     from eduplan.models import User
 
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id)) 
 
-    # Import routes
     from eduplan.routes import main_blueprint
     app.register_blueprint(main_blueprint)
 
