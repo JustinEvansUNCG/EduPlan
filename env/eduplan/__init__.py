@@ -1,15 +1,28 @@
 from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from flask_login import LoginManager
+from configs import Config
 
+db = SQLAlchemy()
+migrate = Migrate()
+login_manager = LoginManager()
 
-app = Flask(__name__)
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
 
-# This is needed to use forms, but will be kept in a more secret place at a later date
-app.secret_key="anystringhere"
+    db.init_app(app)
+    migrate.init_app(app, db)
+    login_manager.init_app(app)
 
+    from eduplan.models import User
 
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id)) 
 
+    from eduplan.routes import main_blueprint
+    app.register_blueprint(main_blueprint)
 
-import eduplan.routes
-
-
-
+    return app
