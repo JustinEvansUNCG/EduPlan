@@ -40,3 +40,7 @@ def course_content():
 @app.route('/admin', methods=["GET", "POST"])
 def admin():
     return render_template('admin.html')
+
+@app.route('/temp', methods=["GET", "POST"])
+def temp():
+    return render_template('temp.html')
