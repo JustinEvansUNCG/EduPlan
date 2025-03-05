@@ -85,20 +85,41 @@ class StudyPreference(db.Model):
     def __repr__(self):
         return f"<StudyPreference User:{self.user_id}>"
     
-class StudyPlan(db.Model):
-    __tablename__ = 'study_plans'
+#class StudyPlan(db.Model):
+#    __tablename__ = 'study_plans'
 
-    id = db.Column(db.Integer, primary_key=True)
+#    id = db.Column(db.Integer, primary_key=True)
+#    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+#    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
+#    study_date = db.Column(db.Date, nullable=False)
+#    study_time = db.Column(db.Time, nullable=False)
+#    study_notes = db.Column(db.Text)
+#    last_modified = db.Column(db.DateTime, default=datetime.utcnow)
+
+#    def __repr__(self):
+#        return f"<StudyPlan User:{self.user_id} Course:{self.course_id}>"
+
+
+class study_event (db.Model):
+
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
-    study_date = db.Column(db.Date, nullable=False)
-    study_time = db.Column(db.Time, nullable=False)
-    study_notes = db.Column(db.Text)
-    last_modified = db.Column(db.DateTime, default=datetime.utcnow)
+    event_id = db.Column(db.Integer, primary_key=True, nullable=False)
+    event_description = db.Column(db.String(200))
 
     def __repr__(self):
-        return f"<StudyPlan User:{self.user_id} Course:{self.course_id}>"
+        return f"<study_event:{self.event_id}"
     
+
+
+class study_time (db.Model):
+    date = db.Column(db.Date, primary_key=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    event_id = db.Column(db.Integer, db.ForeignKey('study_event.event_id'), nullable=False)
+    testing = db.Column(db.Integer)
+
+    def __repr__(self):
+        return f"<study_time:{self.date}"
+
 class AdminActivity(db.Model):
     __tablename__ = 'admin_activity'
 
