@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}study planner{% endblock %}
+{% block title %}temp page{% endblock %}
 {% block head %}
 {{ super() }}
 <link rel="stylesheet"
@@ -15,6 +15,11 @@ href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wgh
     <div class="calendar-container">
         <header class="calendar-header">
             <p class="calendar-current-date"></p>
+            <div id="calendar-mode">
+                <button id="week-button" class="not-selected">Week</button>
+                <button id="month-button" class="selected">Month</button>
+
+            </div>
             <div class="calendar-navigation">
                 <span id="calendar-prev" 
                       class="material-symbols-rounded">
@@ -40,11 +45,14 @@ href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wgh
             <ul class="calendar-dates"></ul>
         </div>
     </div>
+
+
+
+
     <script src="{{ url_for('static', filename='cal_script.js') }}"></script>
+
+
 
 </main>
 
 {% endblock %}
-
-
-

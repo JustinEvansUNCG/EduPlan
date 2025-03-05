@@ -32,3 +32,4 @@ def course_content():
 @main_blueprint.route("/admin", methods=["GET", "POST"])
 def admin():
     return render_template("admin.html")
+
