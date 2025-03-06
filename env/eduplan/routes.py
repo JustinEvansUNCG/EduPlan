@@ -48,3 +48,14 @@ def course_content():
 def admin():
     return render_template("admin.html")
 
+@main_blueprint.route('/api/events')
+def get_events():
+    event_items = db.session.query(study_time, study_event).join(study_event).all()
+    #study_time.query().all()
+    event_list = []
+    for event, event_info in event_items:
+        
+        event_list.append(str({"date": str(event.date), "user_id": event.user_id, "event_id": event.event_id, "event_description": event_info.event_description}))
+    return jsonify(event_list)
+    #return jsonify([dict(event) for event in event_items])
+
