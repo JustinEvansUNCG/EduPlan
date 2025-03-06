@@ -1,8 +1,12 @@
 from flask import Blueprint, render_template, request, jsonify
 from eduplan.forms import TodoForm, todos
-
 from eduplan import db 
 from eduplan.models import study_time, study_event
+import google.generativeai as genai
+import re
+from eduplan.models import Course
+
+genai.configure(api_key="AIzaSyArG1yXW3d1odahUokxzXgOHejGWrDYxLI")
 
 main_blueprint = Blueprint("main", __name__)
 
@@ -38,11 +42,32 @@ def login():
 
 @main_blueprint.route("/resources", methods=["GET", "POST"])
 def resources():
-    return render_template("resources.html")
+    ai_response = None
+    if request.method == "POST":
+        question = request.form.get("question", "Explain a general study tip.")
+
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response_text = model.generate_content(question).text
+
+        response_text = re.sub(r"[*_]+", "", response_text)
+
+        ai_response = response_text
+
+    return render_template("resources.html", ai_response=ai_response)
 
 @main_blueprint.route("/course_content", methods=["GET", "POST"])
 def course_content():
-    return render_template("course_content.html")
+    ai_response = None
+    if request.method == "POST":
+        question = request.form.get("question", "Explain a general study tip.")
+
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response_text = model.generate_content(question).text
+
+        response_text = re.sub(r"[*_]+", "", response_text)
+
+        ai_response = response_text
+    return render_template("course_content.html", ai_response=ai_response)
 
 @main_blueprint.route("/admin", methods=["GET", "POST"])
 def admin():

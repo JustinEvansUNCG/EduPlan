@@ -1,25 +1,41 @@
 {% extends "base.html" %}
-{% block title %}course content{% endblock %}
+
+{% block title %}Course Content{% endblock %}
 {% block head %}
 {{ super() }}
 {% endblock %}
+
 {% block content %}
 <div class="container">
+    <!-- Section Title -->
     <h2>Select a Course</h2>
-    <div class="course-list">
-        <select id="courseDropdown">
-            <option value="">-- Select a Course --</option>
-            {% for course in courses %}
-            <option value="{{ course.code }}">{{ course.code }} - {{ course.name }}</option>
-            {% endfor %}
-        </select>
-    </div>
+    <p>Choose a course and ask a question to get assistance or explanations.</p>
 
-    <h3>Ask a Question About This Course</h3>
-    <div class="chatbox">
-        <input type="text" id="questionInput" placeholder="Type your question...">
-        <button onclick="askQuestion()">Ask</button>
-        <div class="messages" id="chatMessages"></div>
+    <!-- Course Selection Form -->
+    <form method="POST" action="/course_content">
+        <div class="course-list">
+            <select id="topicDropdown">
+                <option value="">-- Select a Topic --</option>
+                <option value="math">Mathematics</option>
+                <option value="science">Science</option>
+                <option value="history">History</option>
+                <option value="programming">Programming</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+
+        <h3>Ask a Question About This Course</h3>
+        <div class="chatbox">
+            <input type="text" name="question" id="questionInput" placeholder="Type your question..." required>
+            <button type="submit">Ask</button>
+        </div>
+    </form>
+
+    <div class="messages" id="chatMessages">
+        {% if ai_response %}
+            <h4>AI Response:</h4>
+            <p>{{ ai_response | safe }}</p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
