@@ -4,6 +4,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from configs import Config
 
+
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
@@ -17,6 +18,8 @@ def create_app():
     login_manager.init_app(app)
 
     from eduplan.models import User
+    from eduplan.forms import RegisterForm, LoginForm
+
 
     @login_manager.user_loader
     def load_user(user_id):

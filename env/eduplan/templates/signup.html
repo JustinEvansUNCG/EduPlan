@@ -6,11 +6,24 @@
 {% block content %}
 <section>
     <h2>Create an Account</h2>
-    <input type="text" id="name" placeholder="Enter your name" required>
-    <input type="email" id="email" placeholder="Enter your email" required>
-    <input type="password" id="password" placeholder="Enter your password" required>
-    <button type="submit">Sign Up</button>
-    <p id="messageBox" class="message"></p>
+    <form method="POST" action=''>
+        {{ form.hidden_tag()}}
+        <div>
+            {{form.name.label }}
+            {{ form.name()}}
+        </div>
+        <div>
+            {{form.email.label }}
+            {{ form.email()}}
+        </div>
+        <div>
+            {{form.password.label }}
+            {{ form.password()}}
+        </div>
+        <div>
+            {{ form.submit()}}
+        </div>
+     
     </form>
 </section>
 {% endblock %}

@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, jsonify
-from eduplan.forms import TodoForm, todos
+from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm
 from eduplan import db 
 from eduplan.models import study_time, study_event
 import google.generativeai as genai
@@ -34,11 +34,13 @@ def study_planner():
 
 @main_blueprint.route("/sign_up", methods=["GET", "POST"])
 def sign_up():
-    return render_template("signup.html")
+    form = RegisterForm()
+    return render_template("signup.html", form = form)
 
 @main_blueprint.route("/login", methods=["GET", "POST"])
 def login():
-    return render_template("login.html")
+    form = LoginForm()
+    return render_template("login.html", form=form)
 
 @main_blueprint.route("/resources", methods=["GET", "POST"])
 def resources():
@@ -84,3 +86,6 @@ def get_events():
     return jsonify(event_list)
     #return jsonify([dict(event) for event in event_items])
 
+@main_blueprint.route('/home')
+def home():
+    return render_template('home.html')
