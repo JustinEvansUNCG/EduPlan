@@ -96,7 +96,7 @@ header .calendar-current-date {
 }
 
 .calendar-dates li.active {
-  color: #fff;
+  color: black;
 }
 
 .calendar-dates li::before {

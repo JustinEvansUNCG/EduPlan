@@ -9,6 +9,17 @@ let week = date.getDate() - date.getDay();
 
 const day = document.querySelector(".calendar-dates");
 
+
+events = document.getElementById("events");
+let event_data = events.dataset.mydata;
+event_data = event_data.replaceAll("'", '"');
+//event_data = event_data.replaceAll("-0", '');
+const event_json = JSON.parse(event_data);
+console.log(events.date);
+console.log(event_json[0]["date"]);
+console.log(event_data);
+
+
 const currdate = document
     .querySelector(".calendar-current-date");
 
@@ -31,11 +42,13 @@ const months = [
     "December"
 ];
 
+
+
+
+
 // Function to generate the calendar
 
 const manipulate = () => {
-
-
 
     // Get the first day of the month
     let dayone = new Date(year, month, 1).getDay();
@@ -49,17 +62,20 @@ const manipulate = () => {
     // Get the last date of the previous month
     let monthlastdate = new Date(year, month, 0).getDate();
 
+
+
     // Variable to store the generated calendar HTML
     let lit = "";
 
     if (document.getElementById("month-button").classList.contains("selected")) {
-        console.log("testing");
 
         // Loop to add the last dates of the previous month
         for (let i = dayone; i > 0; i--) {
             lit +=
                 `<li class="inactive">${monthlastdate - i + 1}</li>`;
+
         }
+
 
         // Loop to add the dates of the current month
         for (let i = 1; i <= lastdate; i++) {
@@ -106,12 +122,50 @@ const manipulate = () => {
             for (i; i <= monthlastdate; i++) {
                 newdays += 1;
                 // Check if the current date is today
+                //FIX BUG WITH CURRENT DAY HERE
                 let isToday = i === currentDate.getDate()
-                    && month === new Date().getMonth()
+                    && (month) === new Date().getMonth()
                     && year === new Date().getFullYear()
                     ? "active"
                     : "";
-                lit += `<li class="${isToday}">${i}</li>`;
+
+                let temp = year + "-"// + (month) + "" + i;
+
+                if (month < 9) {
+                    temp = temp + "0" + month + "-";
+                }
+                else {
+                    temp = temp + month + "-";
+                }
+
+                if (i < 10) {
+                    temp = temp + "0" + i;
+                }
+                else {
+                    temp = temp + i;
+                }
+
+                console.log(temp);
+
+
+
+                let date_check = 0;
+
+                //this needs to be implemented in the other 2 loops
+                for (let j = 0; j < Object.keys(event_json).length; j++) {
+                    if (event_json[j]["date"] === temp) {
+                        lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
+                        date_check = 1;
+                    }
+
+                }
+
+                if (date_check === 0) {
+                    lit += `<li class="${isToday}">${i}</li>`;
+                }
+
+
+
             }
         }
 
@@ -121,13 +175,49 @@ const manipulate = () => {
         for (let i = week; i < week + 7 && i <= lastdate; i++) {
             newdays += 1;
             if (i > 0) {
-            // Check if the current date is today
-            let isToday = i === currentDate.getDate()
-                && month === new Date().getMonth()
-                && year === new Date().getFullYear()
-                ? "active"
-                : "";
-            lit += `<li class="${isToday}">${i}</li>`;
+                // Check if the current date is today
+                let isToday = i === currentDate.getDate()
+                    && month === new Date().getMonth()
+                    && year === new Date().getFullYear()
+                    ? "active"
+                    : "";
+
+                //make a temp variable holding the current date in the same format as in the json, 
+                //the 1 added to the month is due to month going from 0-11
+                let temp = year + "-"// + (month) + "" + i;
+
+                if (month < 9) {
+                    temp = temp + "0" + (month + 1) + "-";
+                }
+                else {
+                    temp = temp + (month + 1) + "-";
+                }
+
+                if (i < 10) {
+                    temp = temp + "0" + i;
+                }
+                else {
+                    temp = temp + i;
+                }
+                console.log(temp);
+
+
+
+                let date_check = 0;
+
+                //this needs to be implemented in the other 2 loops
+                for (let j = 0; j < Object.keys(event_json).length; j++) {
+                    if (event_json[j]["date"] === temp) {
+                        lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
+                        date_check = 1;
+                    }
+
+                }
+
+                if (date_check === 0) {
+                    lit += `<li class="${isToday}">${i}</li>`;
+                }
+
             }
 
         }
@@ -141,7 +231,43 @@ const manipulate = () => {
                 && year === new Date().getFullYear()
                 ? "active"
                 : "";
-            lit += `<li class="${isToday}">${i}</li>`;
+
+
+            let temp = year + "-"// + (month) + "" + i;
+
+            if (month < 9) {
+                temp = temp + "0" + (month + 2) + "-";
+            }
+            else {
+                temp = temp + (month + 2) + "-";
+            }
+
+            if (i < 10) {
+                temp = temp + "0" + i;
+            }
+            else {
+                temp = temp + i;
+            }
+            console.log(temp);
+
+
+
+            let date_check = 0;
+
+            //this needs to be implemented in the other 2 loops
+            for (let j = 0; j < Object.keys(event_json).length; j++) {
+                if (event_json[j]["date"] === temp) {
+                    lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
+                    date_check = 1;
+                }
+
+            }
+
+            if (date_check === 0) {
+                lit += `<li class="${isToday}">${i}</li>`;
+            }
+
+
 
         }
 
@@ -177,12 +303,19 @@ prenexIcons.forEach(icon => {
 
                 // Set the month to the new month
                 month = date.getMonth();
+
+                week = - new Date(year, month, 1).getDay() + 1;
+
+
+
             }
 
             else {
 
                 // Set the date to the current date
                 date = new Date();
+                week = - new Date(year, month, 1).getDay() + 1;
+                console.log(week);
             }
         }
 
@@ -215,6 +348,23 @@ prenexIcons.forEach(icon => {
                 dayend = new Date(year, month, lastdate).getDay();
 
 
+                if (month < 0 || month > 11) {
+                    
+                    date = new Date(year, month, new Date().getDate());
+
+                    // Set the year to the new year
+                    year = date.getFullYear();
+    
+                    // Set the month to the new month
+                    month = date.getMonth();
+                    currdate.innerText = `${months[month]} ${year}`;
+                } 
+                else {
+                    currdate.innerText = `${months[month]} ${year}`;
+                }
+                
+
+
 
                 // Set the date to the first day of the 
                 // month with the new year
@@ -228,7 +378,7 @@ prenexIcons.forEach(icon => {
                 month = date.getMonth();
             }
             else {
-                
+
                 // Set the date to the current date
                 date = new Date();
             }
