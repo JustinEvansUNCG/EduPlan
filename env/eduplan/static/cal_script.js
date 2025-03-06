@@ -1,6 +1,28 @@
 //geeks for geeks js code
 //https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
+events = document.getElementById("events");
+let event_data;
+let event_json;
+
+//the fetch below gets the data from study_event and study_time and puts it into json format
+fetch('/api/events')
+    .then(response => response.json())
+    .then(data => {
+        // Use the data in your JavaScript code
+        event_data = "[" + String(data) + "]";
+        event_data = event_data.replaceAll("'", '"');
+        event_json = JSON.parse(event_data);
+
+        console.log(event_data);
+        //console.log(event_json.date);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+
+
+
 let currentDate = new Date();
 let date = new Date();
 let year = date.getFullYear();
@@ -8,16 +30,6 @@ let month = date.getMonth();
 let week = date.getDate() - date.getDay();
 
 const day = document.querySelector(".calendar-dates");
-
-
-events = document.getElementById("events");
-let event_data = events.dataset.mydata;
-event_data = event_data.replaceAll("'", '"');
-//event_data = event_data.replaceAll("-0", '');
-const event_json = JSON.parse(event_data);
-console.log(events.date);
-console.log(event_json[0]["date"]);
-console.log(event_data);
 
 
 const currdate = document
@@ -349,20 +361,20 @@ prenexIcons.forEach(icon => {
 
 
                 if (month < 0 || month > 11) {
-                    
+
                     date = new Date(year, month, new Date().getDate());
 
                     // Set the year to the new year
                     year = date.getFullYear();
-    
+
                     // Set the month to the new month
                     month = date.getMonth();
                     currdate.innerText = `${months[month]} ${year}`;
-                } 
+                }
                 else {
                     currdate.innerText = `${months[month]} ${year}`;
                 }
-                
+
 
 
 
