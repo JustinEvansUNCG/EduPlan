@@ -107,7 +107,7 @@ class study_event (db.Model):
     event_description = db.Column(db.String(200))
 
     def __repr__(self):
-        return f"<study_event:{self.event_id}"
+        return f"{self.event_id}"
     
 
 
@@ -118,7 +118,7 @@ class study_time (db.Model):
     testing = db.Column(db.Integer)
 
     def __repr__(self):
-        return f"<study_time:{self.date}"
+        return f"{self.date}"
 
 class AdminActivity(db.Model):
     __tablename__ = 'admin_activity'
