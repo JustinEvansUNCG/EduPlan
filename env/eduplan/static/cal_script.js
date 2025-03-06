@@ -1,4 +1,4 @@
-//geeks for geeks js code
+//geeks for geeks js code template was used here, though much has been added to it since then
 //https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
 events = document.getElementById("events");
