@@ -1,18 +1,33 @@
 {% extends "base.html" %}
-{% block title %}resources{% endblock %}
+{% block title %}Resources{% endblock %}
 {% block head %}
 {{ super() }}
 {% endblock %}
 {% block content %}
-<section>
-    <h2>Find the Best Study Materials</h2>
-    <p>Get recommended books, videos, and study tools to help you excel in your courses.</p>
-</section>
+<div class="container">
+    <h2>Select a Study Topic</h2>
+    <div class="topic-list">
+        <select id="topicDropdown">
+            <option value="">-- Select a Topic --</option>
+            <option value="math">Mathematics</option>
+            <option value="science">Science</option>
+            <option value="history">History</option>
+            <option value="programming">Programming</option>
+            <option value="other">Other</option>
+        </select>
+    </div>
 
-<section class="chatbox">
-    <h3>Ask a Question About Study Resources or Explaination on a Topic</h3>
-    <input type="text" id="resourceQuestionInput" placeholder="Type your question...">
-    <button onclick="askResourceQuestion()">Ask</button>
-    <p id="resourceResponse"></p>
-</section>
+    <h3>Ask a Question About Study Resources</h3>
+    <div class="chatbox">
+        <form method="POST" action="/resources">
+            <input type="text" name="question" id="questionInput" placeholder="Type your question..." required>
+            <button type="submit">Ask</button>
+        </form>
+        <div class="messages" id="chatMessages">
+            {% if ai_response %}
+                <p><strong>AI Response:</strong> {{ ai_response }}</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
 {% endblock %}
