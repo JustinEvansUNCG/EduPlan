@@ -1,7 +1,9 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
+from eduplan import bcrypt
 from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm
 from eduplan import db 
-from eduplan.models import study_time, study_event
+from eduplan.models import study_time, study_event, User
+from flask_bcrypt import Bcrypt
 import google.generativeai as genai
 import re
 from eduplan.models import Course
@@ -35,11 +37,29 @@ def study_planner():
 @main_blueprint.route("/sign_up", methods=["GET", "POST"])
 def sign_up():
     form = RegisterForm()
+    if form.validate_on_submit():
+        hash_password= bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        user = User(
+            name=form.name.data,
+            email= form.email.data,
+            password_hash=hash_password,
+            role= 'student'
+            )
+        db.session.add(user)
+        db.session.commit()
+        flash('Your account has been created')
+        return redirect(url_for ('main.login'))
     return render_template("signup.html", form = form)
 
 @main_blueprint.route("/login", methods=["GET", "POST"])
 def login():
     form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email = form.email.data).first()
+        if user and bcrypt.check_password_hash(user.password_hash, form.password.data):
+            session['user_id'] = user.id
+            session['name'] = user.name
+            return redirect(url_for ('main.resources'))
     return render_template("login.html", form=form)
 
 @main_blueprint.route("/resources", methods=["GET", "POST"])
