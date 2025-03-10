@@ -5,12 +5,21 @@
 {% endblock %}
 {% block content %}
 <section>
-    <h2>Login to Your Account</h2>
-    <input type="email" id="email" placeholder="Enter your email" required>
-    <input type="password" id="password" placeholder="Enter your password" required>
-    <button type="submit">Login</button>
-    <p id="messageBox" class="message"></p>
+    <h2>Login</h2>
+    <form method="POST" action=''>
+        {{ form.hidden_tag()}}
+        <div>
+            {{form.email.label }}
+            {{ form.email()}}
+        </div>
+        <div>
+            {{form.password.label }}
+            {{ form.password()}}
+        </div>
+        <div>
+            {{ form.submit()}}
+        </div>
+     
     </form>
-    <a href="signup.html" class="register-link">Don't have an account? Register here</a>
 </section>
 {% endblock %}
