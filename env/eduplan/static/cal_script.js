@@ -1,12 +1,14 @@
 //geeks for geeks js code template was used here, though much has been added to it since then
 //https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
-events = document.getElementById("events");
 let event_data;
 let event_json;
 
+let events;
+let user_events_json;
+
 //the fetch below gets the data from study_event and study_time and puts it into json format
-fetch('/api/events')
+fetch('/api/event_times')
     .then(response => response.json())
     .then(data => {
         // Use the data in your JavaScript code
@@ -15,7 +17,22 @@ fetch('/api/events')
         event_json = JSON.parse(event_data);
 
         console.log(event_data);
-        //console.log(event_json.date);
+
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+
+fetch('/api/events')
+    .then(response => response.json())
+    .then(data => {
+        // Use the data in your JavaScript code
+        events = "[" + String(data) + "]";
+        events = events.replaceAll("'", '"');
+        user_events_json = JSON.parse(events);
+
+        console.log(events);
+
     })
     .catch(error => {
         console.error('Error:', error);
@@ -54,6 +71,16 @@ const months = [
     "December"
 ];
 
+const days = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday"
+]
+
 
 
 
@@ -80,6 +107,9 @@ const manipulate = () => {
     let lit = "";
 
     if (document.getElementById("month-button").classList.contains("selected")) {
+        if (document.getElementById("week-background") !== null) {
+            document.getElementById("week-background").remove();
+        }
 
         // Loop to add the last dates of the previous month
         for (let i = dayone; i > 0; i--) {
@@ -115,6 +145,27 @@ const manipulate = () => {
         day.innerHTML = lit;
     } else {
         document.querySelector(".calendar-dates").innerHTML = "";
+        let plan_id = [];
+
+        if (document.getElementById("week-background") === null) {
+            const week_display = document.createElement("div");
+            week_display.id = "week-background";
+            week_display.innerHTML = `
+    
+                <div id="sunday" class="flex-day"></div>
+                <div id="monday" class="flex-day"></div>
+                <div id="tuesday" class="flex-day"></div>
+                <div id="wednesday" class="flex-day"></div>
+                <div id="thursday" class="flex-day"></div>
+                <div id="friday" class="flex-day"></div>
+                <div id="saturday" class="flex-day"></div>
+    
+            `;
+
+
+            document.querySelector(".calendar-dates").after(week_display);
+
+        }
 
 
         //console.log(currentD);
@@ -158,23 +209,29 @@ const manipulate = () => {
                 }
 
                 console.log(temp);
+                let the_date = new Date(year, month - 1, i).getDay();
+                console.log(days[the_date]);
 
 
-
-                let date_check = 0;
 
                 //this needs to be implemented in the other 2 loops
                 for (let j = 0; j < Object.keys(event_json).length; j++) {
                     if (event_json[j]["date"] === temp) {
-                        lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
-                        date_check = 1;
+                        //lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
+                        const day_object = document.getElementById(days[the_date]);
+                        let event_object = document.createElement("div");
+                        event_object.classList.add("flex-event");
+                        event_object.innerHTML = `${event_json[j]["event_title"]}  <br> ${event_json[j]["start_time"]}-${event_json[j]["end_time"]}`;
+                        day_object.appendChild(event_object);
+                        plan_id.push(event_json[j]["plan_id"])
+
                     }
 
                 }
 
-                if (date_check === 0) {
-                    lit += `<li class="${isToday}">${i}</li>`;
-                }
+
+                lit += `<li class="${isToday}">${i}</li>`;
+
 
 
 
@@ -212,23 +269,45 @@ const manipulate = () => {
                     temp = temp + i;
                 }
                 console.log(temp);
+                let the_date = new Date(year, month, i).getDay();
+                console.log(days[the_date]);
 
 
 
-                let date_check = 0;
+
+
 
                 //this needs to be implemented in the other 2 loops
                 for (let j = 0; j < Object.keys(event_json).length; j++) {
                     if (event_json[j]["date"] === temp) {
-                        lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
-                        date_check = 1;
+                        //lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
+
+                        const end_hour = parseInt(event_json[j]["end_time"].substring(0, 2));
+                        const end_minutes = parseInt(event_json[j]["end_time"].substring(3, 5));
+
+                        const start_hour = parseInt(event_json[j]["start_time"].substring(0, 2));
+                        const start_minutes = parseInt(event_json[j]["start_time"].substring(3, 5));
+
+
+                        const time_elapsed = (end_hour - start_hour) * 60 + end_minutes - start_minutes;
+
+                        console.log("minutes elapsed: " + time_elapsed);
+
+                        const day_object = document.getElementById(days[the_date]);
+                        let event_object = document.createElement("div");
+                        event_object.classList.add("flex-event");
+                        event_object.style.height = time_elapsed + "px";
+                        event_object.innerHTML = `${event_json[j]["event_title"]}  <br> ${event_json[j]["start_time"]}-${event_json[j]["end_time"]}`;
+                        day_object.appendChild(event_object);
+                        plan_id.push(event_json[j]["plan_id"])
+
                     }
 
                 }
 
-                if (date_check === 0) {
-                    lit += `<li class="${isToday}">${i}</li>`;
-                }
+
+                lit += `<li class="${isToday}">${i}</li>`;
+
 
             }
 
@@ -261,29 +340,107 @@ const manipulate = () => {
                 temp = temp + i;
             }
             console.log(temp);
+            let the_date = new Date(year, month + 1, i).getDay();
+            console.log(days[the_date]);
 
 
 
-            let date_check = 0;
+
 
             //this needs to be implemented in the other 2 loops
             for (let j = 0; j < Object.keys(event_json).length; j++) {
                 if (event_json[j]["date"] === temp) {
-                    lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
-                    date_check = 1;
+                    //lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
+                    const time_elapsed = event_json[j]["end_time"].substring(0, 2);
+                    console.log(time_elapsed);
+
+
+                    const day_object = document.getElementById(days[the_date]);
+                    let event_object = document.createElement("div");
+                    event_object.classList.add("flex-event");
+                    event_object.innerHTML = `${event_json[j]["event_title"]}  <br> ${event_json[j]["start_time"]}-${event_json[j]["end_time"]}`;
+                    day_object.appendChild(event_object);
+                    plan_id.push(event_json[j]["plan_id"])
                 }
 
             }
 
-            if (date_check === 0) {
-                lit += `<li class="${isToday}">${i}</li>`;
-            }
+
+            lit += `<li class="${isToday}">${i}</li>`;
+
 
 
 
         }
 
         day.innerHTML = lit;
+
+        const event_objects = document.querySelectorAll(".flex-event");
+        console.log(event_objects.length);
+        let testnum = 0;
+        for (let i = 0; i < event_objects.length; i++) {
+
+            console.log(event_objects[i]);
+            let event_object = document.querySelectorAll(".flex-event")[i];
+
+            //event_object.addEventListener("click", check_events);
+            event_object.addEventListener("click", () => {
+
+                var modal = document.getElementById("event-modify-popup");
+                modal.style.display = "block";
+
+                //let current_event = event.currentTarget;
+                //console.log(document.querySelectorAll(".flex-event")[0]);
+
+                event_info = modal.querySelector("p");
+                event_info.innerHTML = event_object.innerHTML;
+
+
+
+                var close = document.querySelector(".close");
+                close.addEventListener("click", close_event);
+
+                var delete_info = document.getElementById("plan_id");
+                delete_info.value = plan_id[i]
+                //delete_info.innerHTML = `{{ form.plan_id(value=${plan_id[i]}) }}`
+                //delete_button.addEventListener("click", () => {
+
+                //    console.log("test");
+
+                //})
+
+            })
+
+
+        }
+
+        const day_blocks = document.querySelectorAll(".flex-day");
+
+        console.log(day_blocks.length);
+
+        for (let i = 0; i < day_blocks.length; i++) {
+
+            day_blocks[i].addEventListener("dblclick", () => {
+
+
+                var modal = document.getElementById("modal-event-add");
+                modal.querySelector("h2").innerHTML = days[i];
+                modal.style.display = "block";
+
+
+
+                var close = modal.querySelector(".close");
+                close.addEventListener("click", close_event);
+
+
+            })
+
+
+        }
+
+        //event_objects.forEach(check_events);
+        //event_objects.forEach(addEventListener("click", check_events));
+
 
     }
 }
@@ -335,6 +492,14 @@ prenexIcons.forEach(icon => {
             // Check if the icon is "calendar-prev"
             // or "calendar-next"
             week = icon.id === "calendar-prev" ? week - 7 : week + 7;
+
+            let events = document.getElementsByClassName("flex-event");
+
+            //This loop removes events of the last viewed week
+            for (let i = events.length - 1; i >= 0; i--) {
+                events[i].remove();
+
+            }
 
             // Check if the icon is "calendar-prev"
             // or "calendar-next"
@@ -412,14 +577,32 @@ button.addEventListener("click", modeChange);
 
 function modeChange(event) {
 
-    const otherButton = document.querySelector(".selected")
-    otherButton.classList.remove("selected");
-    otherButton.classList.add("not-selected");
+    if (event.currentTarget.classList.contains("not-selected")) {
 
-    const modeButton = event.currentTarget
-    modeButton.classList.remove("not-selected");
-    modeButton.classList.add("selected");
+        const otherButton = document.querySelector(".selected")
+        otherButton.classList.remove("selected");
+        otherButton.classList.add("not-selected");
 
-    manipulate();
-    otherButton.addEventListener("click", modeChange);
+        const modeButton = event.currentTarget
+        modeButton.classList.remove("not-selected");
+        modeButton.classList.add("selected");
+
+        manipulate();
+        otherButton.addEventListener("click", modeChange);
+    }
+
+
 }
+
+
+
+
+
+
+function close_event(event) {
+    var modal = document.querySelectorAll(".modal");
+    modal[0].style.display = "none";
+    modal[1].style.display = "none";
+}
+
+

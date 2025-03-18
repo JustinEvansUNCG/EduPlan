@@ -1,12 +1,13 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
 from eduplan import bcrypt
-from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm
-from eduplan import db 
+from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm
+from eduplan import db
 from eduplan.models import study_time, study_event, User
 from flask_bcrypt import Bcrypt
 import google.generativeai as genai
 import re
 from eduplan.models import Course
+import flask_login
 
 genai.configure(api_key="AIzaSyArG1yXW3d1odahUokxzXgOHejGWrDYxLI")
 
@@ -22,17 +23,81 @@ def index():
 
     return render_template("index.html", todos=todos, template_form=TodoForm())
 
+
+
 @main_blueprint.route("/study_planner", methods=["GET", "POST"])
 def study_planner():
+    form = EventDeleteForm(request.form)
 
-    event_items = db.session.query(study_time, study_event).join(study_event).all()
-    #study_time.query().all()
+    add_form = EventAddForm(request.form)
+
+    event_items = db.session.query(study_event).filter_by(user_id=session['user_id']).all()
+
     event_list = []
-    for event, event_info in event_items:
-        event_list.append({"date": str(event.date), "user_id": event.user_id, "event_id": event.event_id, "event_description": event_info.event_description})
-    #print(jsonify(event_list))
+    for event in event_items:
+        #event_list.append(str({"event_id": event.event_id, "event_title": event.event_title, "event_description": event.event_description}))
+        event_list.append((str(event.event_id), event.event_title))
 
-    return render_template("study_planner.html", events=event_list)
+    add_form.existing_events.choices = event_list
+
+    add_form.existing_events.validate_choice = True
+
+
+    add_form.validate_on_submit()
+
+
+
+    if request.method == 'POST' and form.validate():
+        print("Plan id")
+        print(form.plan_id.data)
+        event = db.session.query(study_time).get(form.plan_id.data)
+
+
+        #plan_event = study_time(form.plan_id)
+        db.session.delete(event)
+        db.session.commit()
+
+        flash('Event deleted')
+        #return redirect(url_for('login'))
+
+
+    return render_template("study_planner.html", form=form, add_form=add_form)
+
+@main_blueprint.route("/study_planner/add", methods=["POST"])
+def add_study_event():
+
+    form = EventDeleteForm(request.form)
+
+    add_form = EventAddForm(request.form)
+
+
+
+
+    #EventAddForm.validate_event(add_form, add_form.existing_events)
+
+    
+    if request.method == 'POST' and add_form.validate():
+        
+        #print(form.plan_id.data)
+        #event = db.session.query(study_event).get(form.plan_id.data)
+        print(add_form.existing_events.data)
+        event = study_time(date = add_form.date.data, event_id = add_form.existing_events.data, start_time = add_form.start_time.data, end_time = add_form.end_time.data)
+        #insert(user_table).values(name="spongebob", fullname="Spongebob Squarepants")
+        #db.insert(study_time).values(date = add_form.date.data, event_id = add_form.event_id.data, start_time = add_form.start_time.data, end_time = add_form.end_time.data)
+        db.session.add(event)
+        db.session.commit()
+
+
+        #plan_event = study_time(form.plan_id)
+        #db.session.delete(event)
+        #db.session.commit()
+
+        #flash('Event deleted')
+        #return redirect(url_for('login'))
+
+    return redirect(url_for('main.study_planner'))
+    #return render_template("study_planner.html", form=form, add_form=add_form)
+
 
 @main_blueprint.route("/sign_up", methods=["GET", "POST"])
 def sign_up():
@@ -95,16 +160,29 @@ def course_content():
 def admin():
     return render_template("admin.html")
 
-@main_blueprint.route('/api/events')
-def get_events():
-    event_items = db.session.query(study_time, study_event).join(study_event).all()
-    #study_time.query().all()
+@main_blueprint.route('/api/event_times')
+def get_event_times():
+    print(session['user_id'])
+    event_items = db.session.query(study_event, study_time).filter_by(user_id=session['user_id']).join(study_time).all()
+
     event_list = []
-    for event, event_info in event_items:
-        
-        event_list.append(str({"date": str(event.date), "user_id": event.user_id, "event_id": event.event_id, "event_description": event_info.event_description}))
+    for event, event_time in event_items:
+        event_list.append(str({"date": str(event_time.date), "event_id": event.event_id, "event_title": event.event_title, "event_description": event.event_description, "start_time": str(event_time.start_time), "end_time": str(event_time.end_time), "plan_id": event_time.plan_id}))
     return jsonify(event_list)
     #return jsonify([dict(event) for event in event_items])
+
+
+@main_blueprint.route('/api/events')
+def get_events():
+    print(session['user_id'])
+    event_items = db.session.query(study_event).filter_by(user_id=session['user_id']).all()
+
+    event_list = []
+    for event in event_items:
+        event_list.append(str({"event_id": event.event_id, "event_title": event.event_title, "event_description": event.event_description}))
+    return jsonify(event_list)
+    #return jsonify([dict(event) for event in event_items])
+
 
 @main_blueprint.route('/home')
 def home():

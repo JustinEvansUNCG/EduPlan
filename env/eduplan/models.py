@@ -105,8 +105,15 @@ class StudyPreference(db.Model):
 class study_event (db.Model):
 
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    event_id = db.Column(db.Integer, primary_key=True, nullable=False)
+    event_id = db.Column(db.Integer, autoincrement=True, unique=True, nullable=False)
+    event_title = db.Column(db.String(100))
     event_description = db.Column(db.String(200))
+
+    __table_args__ = (
+        db.PrimaryKeyConstraint(user_id, event_id),
+
+
+    )
 
     def __repr__(self):
         return f"{self.event_id}"
@@ -114,10 +121,14 @@ class study_event (db.Model):
 
 
 class study_time (db.Model):
-    date = db.Column(db.Date, primary_key=True, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    plan_id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, nullable=False)
     event_id = db.Column(db.Integer, db.ForeignKey('study_event.event_id'), nullable=False)
-    testing = db.Column(db.Integer)
+    start_time = db.Column(db.Time, nullable=False)
+    end_time = db.Column(db.Time, nullable=False)
+    
+
+
 
     def __repr__(self):
         return f"{self.date}"
