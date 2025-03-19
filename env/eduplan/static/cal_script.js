@@ -297,7 +297,7 @@ const manipulate = () => {
                         const day_object = document.getElementById(days[the_date]);
                         let event_object = document.createElement("div");
                         event_object.classList.add("flex-event");
-                        event_object.style.height = time_elapsed + "px";
+                        event_object.style.height = (time_elapsed - 5) + "px";
                         event_object.style.marginTop = time_offset + "px";
 
                         event_object.innerHTML = `${event_json[j]["event_title"]}  <br> ${event_json[j]["start_time"]}-${event_json[j]["end_time"]}`;
