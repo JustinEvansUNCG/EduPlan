@@ -8,6 +8,7 @@ import google.generativeai as genai
 import re
 from eduplan.models import Course
 import flask_login
+import markdown
 
 genai.configure(api_key="AIzaSyArG1yXW3d1odahUokxzXgOHejGWrDYxLI")
 
@@ -195,9 +196,11 @@ def course_content():
         model = genai.GenerativeModel("gemini-2.0-flash")
         response_text = model.generate_content(question).text
 
-        response_text = re.sub(r"[*_]+", "", response_text)
+        # Convert AI response from Markdown to HTML (preserves structure)
+        formatted_response = markdown.markdown(response_text)
 
-        ai_response = response_text
+        ai_response = formatted_response.strip()  
+
     return render_template("course_content.html", ai_response=ai_response)
 
 
