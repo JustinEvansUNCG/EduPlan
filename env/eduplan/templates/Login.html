@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "NoNavBase.html" %}
 {% block title %}login{% endblock %}
 {% block head %}
 {{ super() }}
@@ -19,6 +19,7 @@
         <div>
             {{ form.submit()}}
         </div>
+        <a href="{{ url_for('main.sign_up') }}"><span class = "link" >Don't already have an account? Sign up here </span></a>
      
     </form>
 </section>

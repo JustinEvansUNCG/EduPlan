@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "NoNavBase.html" %}
 {% block title %}signup{% endblock %}
 {% block head %}
 {{ super() }}
@@ -21,8 +21,13 @@
             {{ form.password()}}
         </div>
         <div>
+            {{form.confirm_password.label }}
+            {{ form.confirm_password()}}
+        </div>
+        <div>
             {{ form.submit()}}
         </div>
+        <a href="{{ url_for('main.login') }}"><span class = "link" >Already have an account? Login here </span></a>
      
     </form>
 </section>
