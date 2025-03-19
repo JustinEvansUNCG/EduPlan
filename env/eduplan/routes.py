@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
 from eduplan import bcrypt
-from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm
+from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm
 from eduplan import db
 from eduplan.models import study_time, study_event, User
 from flask_bcrypt import Bcrypt
@@ -8,11 +8,22 @@ import google.generativeai as genai
 import re
 from eduplan.models import Course
 import flask_login
+from flask_login import login_required, current_user, logout_user, login_user
 import markdown
+from functools import wraps
 
 genai.configure(api_key="AIzaSyArG1yXW3d1odahUokxzXgOHejGWrDYxLI")
 
 main_blueprint = Blueprint("main", __name__)
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not flask_login.current_user.is_authenticated or flask_login.current_user.role != 'admin':
+            flash('Unauthorized access', 'danger')
+            return redirect(url_for('main.home'))  # Or wherever you want to redirect non-admins
+        return f(*args, **kwargs)
+    return decorated_function
 
 @main_blueprint.route("/index", methods=["GET", "POST"])
 def index():
@@ -23,7 +34,7 @@ def index():
     return render_template("index.html", todos=todos, template_form=TodoForm())
 
 
-
+@login_required
 @main_blueprint.route("/study_planner", methods=["GET", "POST"])
 def study_planner():
     form = EventDeleteForm(request.form)
@@ -62,6 +73,7 @@ def study_planner():
 
 
     return render_template("study_planner.html", form=form, add_form=add_form, modify_form=modify_form)
+
 
 @main_blueprint.route("/study_planner/modify", methods=["POST"])
 def modify_study_event():
@@ -163,14 +175,22 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user and bcrypt.check_password_hash(user.password_hash, form.password.data):
-            session['user_id'] = user.id
-            session['name'] = user.name
-            return redirect(url_for('main.admin'))
+            login_user(user)  # Use Flask-Login's login_user()
+
+            # Use next parameter for redirection
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('main.study_planner'))
+
         else:
-            flash('Invalid email or password', 'danger') # Incorrect login
+            flash('Invalid email or password', 'danger')  # Incorrect login
+            return render_template("login.html", form=form)
     return render_template("login.html", form=form)
 
+
+
+
 @main_blueprint.route("/resources", methods=["GET", "POST"])
+@login_required
 def resources():
     ai_response = None
     if request.method == "POST":
@@ -185,7 +205,9 @@ def resources():
 
     return render_template("resources.html", ai_response=ai_response)
 
+
 @main_blueprint.route("/course_content", methods=["GET", "POST"])
+@login_required
 def course_content():
     ai_response = None
     if request.method == "POST":
@@ -231,15 +253,26 @@ def get_events():
     #return jsonify([dict(event) for event in event_items])
 
 
-@main_blueprint.route('/home')
+@main_blueprint.route('/')
 def home():
     return render_template('home.html')
+
+
+
+@main_blueprint.route("/logout", methods=["POST"])  # Ensures only POST requests are accepted
+@login_required
+def logout():
+    logout_user()
+    flash("You have been logged out.", "info")
+    return redirect(url_for("main.login"))
 
 
 #All Admin methods 
 
 #Admin search
+#@login_required
 @main_blueprint.route("/admin")
+@admin_required
 def admin():
     search_query = request.args.get('search', '')
     if search_query:
@@ -251,37 +284,29 @@ def admin():
         users = User.query.all()
     return render_template("admin.html", users=users)
 
-#method to delete users
-@main_blueprint.route('/admin/delete_user/<int:user_id>', methods=['POST'])
+@main_blueprint.route('/admin/delete_user/<int:user_id>', methods=['POST'])  # Added <int:user_id>
+@admin_required
 def delete_user(user_id):
-   # if current_user.role != 'admin':
-    #    flash('Unauthorized action', 'danger')
-     #   return redirect(url_for('main.home'))
     user = User.query.get_or_404(user_id)
     user.is_deleted = True
     db.session.commit()
     flash('User account soft deleted', 'success')
     return redirect(url_for('main.admin'))
 
-#Method to restore soft deleted accounts
-@main_blueprint.route('/admin/restore_user/<int:user_id>', methods=['POST'])
+@main_blueprint.route('/admin/restore_user/<int:user_id>', methods=['POST']) # Added <int:user_id>
+@admin_required
 def restore_user(user_id):
-    #if current_user.role != 'admin':
-     #   flash('Unauthorized action', 'danger')
-      #  return redirect(url_for('main.home'))
     user = User.query.get_or_404(user_id)
     user.is_deleted = False
     db.session.commit()
     flash('User account restored', 'success')
     return redirect(url_for('main.admin'))
 
-
-
-# Method to reset password
-@main_blueprint.route('/admin/reset_password/<int:user_id>', methods=['POST'])
+@main_blueprint.route('/admin/reset_password/<int:user_id>', methods=['POST']) # Added <int:user_id>
+@admin_required
 def reset_password(user_id):
     user = User.query.get_or_404(user_id)
-    new_password = request.form.get('new_password')  
+    new_password = request.form.get('new_password')
     if new_password:
         hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
         user.password_hash = hashed_password
@@ -291,17 +316,8 @@ def reset_password(user_id):
         flash('New password is required', 'danger')
     return redirect(url_for('main.admin'))
 
-
-
-
-
-
 @main_blueprint.route('/admin/account_management')
-#@login_required
+@admin_required
 def account_management():
-    #if current_user.role != 'admin':
-     #   flash('Unauthorized access', 'danger')
-      #  return redirect(url_for('main.home'))
     users = User.query.all()
     return render_template('account_management.html', users=users)
-
