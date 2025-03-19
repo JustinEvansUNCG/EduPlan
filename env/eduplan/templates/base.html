@@ -10,7 +10,7 @@
 
 <body>
     <header>
-        
+
         <nav>
             <ul>
 
@@ -18,8 +18,22 @@
                 <li><a href="{{ url_for('main.course_content') }}">Course Selection</a></li>
                 <li><a href="{{ url_for('main.study_planner') }}">Study Planner</a></li>
                 <li><a href="{{ url_for('main.resources') }}">Resources</a></li>
-                <li><a href="{{ url_for('main.login') }}">Logout</a></li>
+                {% if current_user.is_authenticated %}
+                <li>
+                    <form action="{{ url_for('main.logout') }}" method="post">
+                        {{ form.csrf_token }}
+                        <button type="submit">Logout</button>
+                    </form>
+                </li>
+                {% else %}
+                <li><a href="{{ url_for('main.login') }}">Login</a></li>
+                <li><a href="{{ url_for('main.sign_up') }}">Sign Up</a></li>
+                {% endif %}
+
+                {% if current_user.is_authenticated and current_user.role == 'admin' %}
                 <li><a href="{{ url_for('main.admin') }}">Admin</a></li>
+                {% endif %}
+
             </ul>
         </nav>
     </header>
