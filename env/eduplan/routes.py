@@ -49,7 +49,6 @@ def study_planner():
 
 
     if request.method == 'POST' and form.validate():
-        print("Plan id")
         print(form.plan_id.data)
         event = db.session.query(study_time).get(form.plan_id.data)
 
@@ -71,7 +70,6 @@ def modify_study_event():
 
     if request.method == 'POST' and modify_form.validate():
         
-        print("falalalala")
         planned_event = db.session.query(study_time).get(modify_form.plan_id.data)
 
         planned_event.start_time = modify_form.start_time.data

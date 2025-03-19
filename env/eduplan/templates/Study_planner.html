@@ -89,7 +89,7 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
             <span class="close">&times;</span>
 
             <p></p>
-            <form method="POST">
+            <form method="POST" id="delete-form">
                 {{ form.csrf_token }}
                 <p id="event-delete-info">
 
@@ -100,7 +100,7 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
                 </p>
             </form>
 
-            <form method="POST" action="{{ url_for('main.modify_study_event') }}">
+            <form method="POST" action="{{ url_for('main.modify_study_event') }}" id="modify-form">
                 {{ modify_form.csrf_token }}
                 <p id="event-modify-info" >
 
@@ -123,6 +123,8 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
             </form>
 
+            
+
         </div>
 
 
@@ -139,7 +141,7 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
             <h2></h2>
             <h3>Create New Event</h3>
-            <form method="POST" action="{{ url_for('main.add_study_event') }}">
+            <form method="POST" action="{{ url_for('main.add_study_event') }}" id="add-form">
                 {{ add_form.csrf_token }}
                 <p id="event-add-info">
 

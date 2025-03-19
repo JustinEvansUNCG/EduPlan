@@ -8,20 +8,31 @@ let events;
 let user_events_json;
 
 //the fetch below gets the data from study_event and study_time and puts it into json format
-fetch('/api/event_times')
-    .then(response => response.json())
-    .then(data => {
-        // Use the data in your JavaScript code
-        event_data = "[" + String(data) + "]";
-        event_data = event_data.replaceAll("'", '"');
-        event_json = JSON.parse(event_data);
 
-        console.log(event_data);
+async function getEvents() {
+    console.log("test");
+    await fetch('/api/event_times')
+        .then(response => response.json())
+        .then(data => {
+            // Use the data in your JavaScript code
+            event_data = "[" + String(data) + "]";
+            event_data = event_data.replaceAll("'", '"');
+            event_json = JSON.parse(event_data);
 
-    })
-    .catch(error => {
-        console.error('Error:', error);
-    });
+            console.log(event_data);
+
+
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+
+}
+getEvents();
+
+
+
+
 
 fetch('/api/events')
     .then(response => response.json())
@@ -88,6 +99,8 @@ const days = [
 // Function to generate the calendar
 
 const manipulate = () => {
+
+    //await getEvents();
 
     // Get the first day of the month
     let dayone = new Date(year, month, 1).getDay();
@@ -166,6 +179,14 @@ const manipulate = () => {
             document.querySelector(".calendar-dates").after(week_display);
 
         }
+        let previous_events = document.getElementsByClassName("flex-event");
+        const event_count = previous_events.length;
+        for (let i = 0; i < event_count; i++) {
+            console.log("hello its me");
+
+            previous_events[0].remove();
+        }
+
 
 
         //console.log(currentD);
@@ -297,7 +318,7 @@ const manipulate = () => {
                         const day_object = document.getElementById(days[the_date]);
                         let event_object = document.createElement("div");
                         event_object.classList.add("flex-event");
-                        event_object.style.height = time_elapsed + "px";
+                        event_object.style.height = (time_elapsed - 5) + "px";
                         event_object.style.marginTop = time_offset + "px";
 
                         event_object.innerHTML = `${event_json[j]["event_title"]}  <br> ${event_json[j]["start_time"]}-${event_json[j]["end_time"]}`;
@@ -387,7 +408,7 @@ const manipulate = () => {
             let event_object = document.querySelectorAll(".flex-event")[i];
 
             //event_object.addEventListener("click", check_events);
-            event_object.addEventListener("click", () => {
+            event_object.addEventListener("click", async () => {
 
                 var modal = document.getElementById("event-modify-popup");
                 modal.style.display = "block";
@@ -403,6 +424,7 @@ const manipulate = () => {
 
 
 
+
                 var close = document.querySelector(".close");
                 close.addEventListener("click", close_event);
 
@@ -411,15 +433,61 @@ const manipulate = () => {
 
                 var modify_info = document.getElementById("plan-id");
                 modify_info.value = plan_id[i];
-                //delete_info.innerHTML = `{{ form.plan_id(value=${plan_id[i]}) }}`
-                //delete_button.addEventListener("click", () => {
 
-                //    console.log("test");
 
-                //})
+                const form = document.getElementById("delete-form");
+                //form.submit();
+                form.addEventListener("submit", async function (event) {
+                    event.preventDefault();
+
+                    const form_info = new FormData(form);
+
+                    const response = await fetch('/study_planner', {
+                        method: 'POST',
+                        body: form_info,
+
+                    })
+                        .then(response => response)
+                        .then(data => console.log(data))
+                        .catch(error => console.log(error));
+
+                    const func = async () => {
+                        await getEvents();
+                        close_event();
+                        manipulate();
+                    }
+
+                    await func();
+                })
+
+
+                const modify_form = document.getElementById("modify-form");
+                //form.submit();
+                modify_form.addEventListener("submit", async function (event) {
+                    event.preventDefault();
+
+                    const form_info = new FormData(modify_form);
+
+                    const response = await fetch('/study_planner/modify', {
+                        method: 'POST',
+                        body: form_info,
+
+                    })
+                        .then(response => response)
+                        .then(data => console.log(data))
+                        .catch(error => console.log(error));
+
+                    const func = async () => {
+                        await getEvents();
+                        close_event();
+                        manipulate();
+                    }
+
+                    await func();
+                })
+
 
             })
-
 
         }
 
@@ -452,6 +520,32 @@ const manipulate = () => {
                 })
 
 
+                const add_form = document.getElementById("add-form");
+                //form.submit();
+                add_form.addEventListener("submit", async function (event) {
+                    event.preventDefault();
+
+                    const form_info = new FormData(add_form);
+
+                    const response = await fetch('/study_planner/add', {
+                        method: 'POST',
+                        body: form_info,
+
+                    })
+                        .then(response => response)
+                        .then(data => console.log(data))
+                        .catch(error => console.log(error));
+
+                    const func = async () => {
+                        await getEvents();
+                        close_event();
+                        manipulate();
+                    }
+
+                    await func();
+                })
+
+
 
 
 
@@ -466,6 +560,7 @@ const manipulate = () => {
 
         //event_objects.forEach(check_events);
         //event_objects.forEach(addEventListener("click", check_events));
+
 
 
     }
@@ -629,6 +724,19 @@ function close_event(event) {
     var modal = document.querySelectorAll(".modal");
     modal[0].style.display = "none";
     modal[1].style.display = "none";
+}
+
+
+
+
+
+
+
+
+function formReader(event) {
+    event.preventDefault();
+
+
 }
 
 
