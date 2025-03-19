@@ -261,11 +261,12 @@ def home():
 
 
 
-@main_blueprint.route('/logout')
-@login_required  # Only logged-in users can log out
+@main_blueprint.route("/logout", methods=["POST"])  # Ensures only POST requests are accepted
+@login_required
 def logout():
-    logout_user()  # Use Flask-Login's logout_user()
-    return redirect(url_for('main.login'))  # Redirect to login page
+    logout_user()
+    flash("You have been logged out.", "info")
+    return redirect(url_for("main.login"))
 
 
 #All Admin methods 
