@@ -259,3 +259,8 @@ tr {
   text-decoration: none;
   cursor: pointer;
 }
+
+
+#new-event-info {
+  display: none;
+}

@@ -397,11 +397,17 @@ const manipulate = () => {
 
 
 
+
+
+
                 var close = document.querySelector(".close");
                 close.addEventListener("click", close_event);
 
                 var delete_info = document.getElementById("plan_id");
-                delete_info.value = plan_id[i]
+                delete_info.value = plan_id[i];
+
+                var modify_info = document.getElementById("plan-id");
+                modify_info.value = plan_id[i];
                 //delete_info.innerHTML = `{{ form.plan_id(value=${plan_id[i]}) }}`
                 //delete_button.addEventListener("click", () => {
 
@@ -426,6 +432,23 @@ const manipulate = () => {
                 var modal = document.getElementById("modal-event-add");
                 modal.querySelector("h2").innerHTML = days[i];
                 modal.style.display = "block";
+
+
+                var event_type = document.getElementById("event_creation_type");
+                event_type.value = 0;
+
+                var new_event_btn = document.getElementById("new-event-btn");
+                new_event_btn.addEventListener("click", () => {
+
+                    document.getElementById("new-event-info").style.display = "block";
+                    document.getElementById("old-events").style.display = "none";
+                    event_type.value = 1;
+
+
+
+                })
+
+
 
 
 
@@ -604,5 +627,7 @@ function close_event(event) {
     modal[0].style.display = "none";
     modal[1].style.display = "none";
 }
+
+
 
 

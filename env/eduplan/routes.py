@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
 from eduplan import bcrypt
-from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm
+from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm
 from eduplan import db
 from eduplan.models import study_time, study_event, User
 from flask_bcrypt import Bcrypt
@@ -30,6 +30,8 @@ def study_planner():
     form = EventDeleteForm(request.form)
 
     add_form = EventAddForm(request.form)
+
+    modify_form = EventModifyForm(request.form)
 
     event_items = db.session.query(study_event).filter_by(user_id=session['user_id']).all()
 
@@ -61,12 +63,37 @@ def study_planner():
         #return redirect(url_for('login'))
 
 
-    return render_template("study_planner.html", form=form, add_form=add_form)
+    return render_template("study_planner.html", form=form, add_form=add_form, modify_form=modify_form)
+
+@main_blueprint.route("/study_planner/modify", methods=["POST"])
+def modify_study_event():
+
+    modify_form = EventModifyForm(request.form)
+
+    if request.method == 'POST' and modify_form.validate():
+        
+        print("falalalala")
+        planned_event = db.session.query(study_time).get(modify_form.plan_id.data)
+
+        planned_event.start_time = modify_form.start_time.data
+        planned_event.end_time = modify_form.end_time.data
+        planned_event.date = modify_form.date.data
+
+        
+
+        event = db.session.query(study_event).get((session["user_id"], planned_event.event_id))
+        event.event_title = modify_form.event_title.data
+        event.event_description = modify_form.event_description.data
+
+        db.session.commit()
+    return redirect(url_for('main.study_planner'))
+
+
+
 
 @main_blueprint.route("/study_planner/add", methods=["POST"])
 def add_study_event():
 
-    form = EventDeleteForm(request.form)
 
     add_form = EventAddForm(request.form)
 
@@ -78,14 +105,27 @@ def add_study_event():
     
     if request.method == 'POST' and add_form.validate():
         
-        #print(form.plan_id.data)
-        #event = db.session.query(study_event).get(form.plan_id.data)
-        print(add_form.existing_events.data)
-        event = study_time(date = add_form.date.data, event_id = add_form.existing_events.data, start_time = add_form.start_time.data, end_time = add_form.end_time.data)
-        #insert(user_table).values(name="spongebob", fullname="Spongebob Squarepants")
-        #db.insert(study_time).values(date = add_form.date.data, event_id = add_form.event_id.data, start_time = add_form.start_time.data, end_time = add_form.end_time.data)
-        db.session.add(event)
-        db.session.commit()
+
+        print("whats up")
+        print(type(add_form.event_creation_type.data))
+        if add_form.event_creation_type.data == "0":
+            planned_event = study_time(date = add_form.date.data, event_id = add_form.existing_events.data, start_time = add_form.start_time.data, end_time = add_form.end_time.data)
+            db.session.add(planned_event)
+            db.session.commit()
+        elif add_form.event_creation_type.data == "1":
+
+
+            
+            event = study_event(user_id = session["user_id"], event_title = add_form.event_title.data, event_description = add_form.event_description.data)
+            db.session.add(event)
+            db.session.commit()
+
+            
+
+            planned_event = study_time(date = add_form.date.data, event_id = event.event_id, start_time = add_form.start_time.data, end_time = add_form.end_time.data)
+            db.session.add(planned_event)
+            db.session.commit()
+
 
 
         #plan_event = study_time(form.plan_id)
