@@ -10,14 +10,15 @@
 
 <body>
     <header>
-        <h1>EDUPlan</h1>
+        
         <nav>
             <ul>
-                <li><a href="{{ url_for('main.index') }}">Home</a></li>
+
+                <li><a href="{{ url_for('main.home') }}">Home</a></li>
                 <li><a href="{{ url_for('main.course_content') }}">Course Selection</a></li>
                 <li><a href="{{ url_for('main.study_planner') }}">Study Planner</a></li>
                 <li><a href="{{ url_for('main.resources') }}">Resources</a></li>
-                <li><a href="{{ url_for('main.login') }}">Login/Signup</a></li>
+                <li><a href="{{ url_for('main.login') }}">Logout</a></li>
                 <li><a href="{{ url_for('main.admin') }}">Admin</a></li>
             </ul>
         </nav>
