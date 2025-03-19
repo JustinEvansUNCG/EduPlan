@@ -16,6 +16,7 @@ class User(db.Model, UserMixin):
     role = db.Column(db.Enum('student', 'admin', name='user_roles'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)
 
     def __repr__(self):
         return f"<User {self.email}>"
@@ -149,3 +150,11 @@ class AdminActivity(db.Model):
 #
 #
 #
+class Transcript(db.Model):
+    __tablename__ = 'transcripts'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+

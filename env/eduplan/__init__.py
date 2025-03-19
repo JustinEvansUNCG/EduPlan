@@ -31,5 +31,7 @@ def create_app():
     from eduplan.routes import main_blueprint
     app.register_blueprint(main_blueprint)
 
+#admin password= SecurePass123
+#user passwords are username
 
     return app
