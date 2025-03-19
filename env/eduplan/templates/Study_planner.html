@@ -3,7 +3,7 @@
 {% block head %}
 {{ super() }}
 <link rel="stylesheet"
-href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
 <link rel="stylesheet" href="{{ url_for('static', filename='calendar.css') }}">
 {% endblock %}
 {% block content %}
@@ -12,7 +12,7 @@ href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wgh
 geeks for geeks html code was used as a template here, 
 https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 */-->
-    
+
 
 <main>
     <div class="calendar-container">
@@ -24,12 +24,10 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
             </div>
             <div class="calendar-navigation">
-                <span id="calendar-prev" 
-                      class="material-symbols-rounded">
+                <span id="calendar-prev" class="material-symbols-rounded">
                     chevron_left
                 </span>
-                <span id="calendar-next" 
-                      class="material-symbols-rounded">
+                <span id="calendar-next" class="material-symbols-rounded">
                     chevron_right
                 </span>
             </div>
@@ -47,6 +45,33 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
             </ul>
             <ul class="calendar-dates"></ul>
         </div>
+
+
+        <!--
+        <img src="{{ url_for('static', filename='Calendar-background.png') }}" id="week-background">
+        
+        <div id="week-background">
+
+            <div id="sunday" class="flex-day">
+
+                <div class="flex-event">
+                    event 1
+                </div>
+
+                <div class="flex-event">
+                    event 2
+                </div>
+
+            </div>
+            <div id="monday" class="flex-day">hi</div>
+            <div id="tuesday" class="flex-day">hi</div>
+            <div id="wednesday" class="flex-day">hi</div>
+            <div id="thursday" class="flex-day">hi</div>
+            <div id="friday" class="flex-day">hi</div>
+            <div id="saturday" class="flex-day">hi</div>
+
+        </div>
+        -->
     </div>
 
 
@@ -55,6 +80,98 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
 
     <script src="{{ url_for('static', filename='cal_script.js') }}"></script>
+
+    <!-- The Modal -->
+    <div id="event-modify-popup" class="modal">
+
+        <!-- Modal content -->
+        <div class="modal-content">
+            <span class="close">&times;</span>
+
+            <p></p>
+            <form method="POST">
+                {{ form.csrf_token }}
+                <p id="event-delete-info">
+
+                    {{ form.plan_id(id="plan_id") }}
+                </p>
+                <p>
+                    {{ form.submit() }}
+                </p>
+            </form>
+
+            <form method="POST" action="{{ url_for('main.modify_study_event') }}">
+                {{ modify_form.csrf_token }}
+                <p id="event-modify-info" >
+
+                    {{ modify_form.plan_id(id="plan-id") }}
+                    {{ modify_form.date }}
+                    {{ modify_form.start_time }}
+                    {{ modify_form.end_time }}
+                    {{ modify_form.event_title }}
+                    {{ modify_form.event_description }}
+
+                </p>
+
+                <p>
+                    {{ modify_form.submit() }}
+                </p>
+
+
+
+
+
+            </form>
+
+        </div>
+
+
+
+
+    </div>
+
+    <div id="modal-event-add" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+
+            <p>Don't see an event you need? Click button to create new event and study plan</p>
+            <button id="new-event-btn">Create Plan with new event</button>
+
+            <h2></h2>
+            <h3>Create New Event</h3>
+            <form method="POST" action="{{ url_for('main.add_study_event') }}">
+                {{ add_form.csrf_token }}
+                <p id="event-add-info">
+
+                    {{ add_form.date }}
+                    {{ add_form.start_time }}
+                    {{ add_form.end_time }}
+
+                    {{ add_form.existing_events(id="old-events") }}
+
+                    {{ add_form.event_creation_type(id="event_creation_type") }}
+
+                </p>
+
+                <p id="new-event-info">                    
+                    {{ add_form.event_title }}
+                    {{ add_form.event_description }}</p>
+
+                <p>
+                    {{ add_form.submit() }}
+                </p>
+
+                
+
+            </form>
+
+
+
+
+
+        </div>
+
+    </div>
 
 
 
