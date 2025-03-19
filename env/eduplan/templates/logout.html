@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h2>Logout</h2>
+    <p>Are you sure you want to logout?</p>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <button type="submit" class="btn btn-danger">Logout</button>
+        <a href="{{ url_for(main.login) }}" class="btn btn-secondary">Cancel</a>
+    </form>
+{% endblock %}
