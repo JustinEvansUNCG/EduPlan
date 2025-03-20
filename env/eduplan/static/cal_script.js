@@ -738,7 +738,3 @@ function formReader(event) {
 
 
 }
-
-
-
-
