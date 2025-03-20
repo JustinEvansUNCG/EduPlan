@@ -194,14 +194,14 @@ def login():
 def resources():
     ai_response = None
     if request.method == "POST":
-        question = request.form.get("question", "Explain a general study tip.")
+        question = request.form.get("question", "Provide a good study resource")
 
         model = genai.GenerativeModel("gemini-2.0-flash")
         response_text = model.generate_content(question).text
 
-        response_text = re.sub(r"[*_]+", "", response_text)
+        formatted_response = markdown.markdown(response_text)
 
-        ai_response = response_text
+        ai_response = formatted_response.strip()  
 
     return render_template("resources.html", ai_response=ai_response)
 
@@ -216,7 +216,6 @@ def course_content():
         model = genai.GenerativeModel("gemini-2.0-flash")
         response_text = model.generate_content(question).text
 
-        # Convert AI response from Markdown to HTML (preserves structure)
         formatted_response = markdown.markdown(response_text)
 
         ai_response = formatted_response.strip()  

@@ -19,15 +19,16 @@
 
     <h3>Ask a Question About Study Resources</h3>
     <div class="chatbox">
-        <form method="POST" action="/resources">
-            <input type="text" name="question" id="questionInput" placeholder="Type your question..." required>
-            <button type="submit">Ask</button>
-        </form>
-        <div class="messages" id="chatMessages">
-            {% if ai_response %}
-                <p><strong>AI Response:</strong> {{ ai_response }}</p>
-            {% endif %}
-        </div>
+        <input type="text" name="question" id="questionInput" placeholder="Type your question..." required>
+        <button type="submit">Ask</button>
     </div>
+</form>
+
+<div class="messages" id="chatMessages">
+    {% if ai_response %}
+        <h4>AI Response:</h4>
+        <p>{{ ai_response | safe }}</p>
+    {% endif %}
+</div>
 </div>
 {% endblock %}
