@@ -193,33 +193,52 @@ def login():
 @login_required
 def resources():
     ai_response = None
+
     if request.method == "POST":
-        question = request.form.get("question", "Explain a general study tip.")
+        question = request.form.get("question", "").strip()
+        
+        if not question:
+            question = "Explain a general study tip."
 
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        response_text = model.generate_content(question).text
+        study_prompt = f"Ensure this is a study-related question. If it isn't, ask the user to rephrase, if it is, answer the question and dont say anything about text before this to the user {question}"
+        blocked_keywords = ["game", "movie", "politics", "news", "celebrity"]
+        print(study_prompt)
+        if any(keyword in question.lower() for keyword in blocked_keywords):
+            ai_response = "This question doesn't seem related to studies. Please ask about a study-related topic."
+        else:
+            model = genai.GenerativeModel("gemini-2.0-flash")
+            response = model.generate_content(study_prompt)
+            if response and response.text:
+                ai_response = markdown.markdown(response.text.strip())
+            else:
+                ai_response = "Error processing AI response."
 
-        response_text = re.sub(r"[*_]+", "", response_text)
-
-        ai_response = response_text
-
-    return render_template("resources.html", ai_response=ai_response)
+    return render_template("Resources.html", ai_response=ai_response)
 
 
 @main_blueprint.route("/course_content", methods=["GET", "POST"])
 @login_required
 def course_content():
     ai_response = None
+
     if request.method == "POST":
-        question = request.form.get("question", "Explain a general study tip.")
+        question = request.form.get("question", "").strip()
+        
+        if not question:
+            question = "Explain a general study tip."
 
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        response_text = model.generate_content(question).text
-
-        # Convert AI response from Markdown to HTML (preserves structure)
-        formatted_response = markdown.markdown(response_text)
-
-        ai_response = formatted_response.strip()  
+        study_prompt = f"Ensure this is a study-related question. If it isn't, ask the user to rephrase, if it is, answer the question and dont say anything about text before this to the user {question}"
+        blocked_keywords = ["game", "movie", "politics", "news", "celebrity"]
+        print(study_prompt)
+        if any(keyword in question.lower() for keyword in blocked_keywords):
+            ai_response = "This question doesn't seem related to studies. Please ask about a study-related topic."
+        else:
+            model = genai.GenerativeModel("gemini-2.0-flash")
+            response = model.generate_content(study_prompt)
+            if response and response.text:
+                ai_response = markdown.markdown(response.text.strip())
+            else:
+                ai_response = "Error processing AI response."
 
     return render_template("course_content.html", ai_response=ai_response)
 

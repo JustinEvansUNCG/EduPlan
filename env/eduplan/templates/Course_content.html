@@ -1,17 +1,13 @@
 {% extends "base.html" %}
-
-{% block title %}Course Content{% endblock %}
+{% block title %}Resources{% endblock %}
 {% block head %}
 {{ super() }}
 {% endblock %}
-
 {% block content %}
 <div class="container">
-    <!-- Section Title -->
     <h2>Select a Course</h2>
     <p>Choose a course and ask a question to get assistance or explanations.</p>
-
-    <!-- Course Selection Form -->
+    
     <form method="POST" action="/course_content">
         <div class="course-list">
             <select id="topicDropdown">
