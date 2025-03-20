@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
 from eduplan import bcrypt
-from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm
+from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, CourseCatalogUploadForm
 from eduplan import db
 from eduplan.models import study_time, study_event, User
 from flask_bcrypt import Bcrypt
@@ -11,10 +11,20 @@ import flask_login
 from flask_login import login_required, current_user, logout_user, login_user
 import markdown
 from functools import wraps
+from werkzeug.utils import secure_filename
+import os
+import fitz  
+import csv
+from flask import send_file
+
+
 
 genai.configure(api_key="AIzaSyArG1yXW3d1odahUokxzXgOHejGWrDYxLI")
 
 main_blueprint = Blueprint("main", __name__)
+
+UPLOAD_FOLDER = "uploads"  # Ensure this directory exists
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def admin_required(f):
     @wraps(f)
@@ -24,6 +34,8 @@ def admin_required(f):
             return redirect(url_for('main.home')) 
         return f(*args, **kwargs)
     return decorated_function
+
+
 
 @main_blueprint.route("/index", methods=["GET", "POST"])
 def index():
@@ -321,3 +333,161 @@ def reset_password(user_id):
 def account_management():
     users = User.query.all()
     return render_template('account_management.html', users=users)
+
+
+#Course Catalog Routes
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'pdf'}
+
+
+@main_blueprint.route("/upload_catalog", methods=["GET", "POST"])
+def upload_catalog():
+    """Handles file upload from the web form and saves extracted data to a CSV."""
+    form = CourseCatalogUploadForm()
+
+    if form.validate_on_submit():
+        file = form.catalog_file.data
+
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(filepath)
+
+            # Extract and parse courses from the PDF
+            extracted_text = extract_text_from_pdf(filepath)
+            courses = parse_courses(extracted_text)
+
+            # Save extracted courses to the database
+            save_courses_to_db(courses)
+
+            #  Save extracted courses to CSV
+            csv_path = save_courses_to_csv(courses)
+
+            flash(f"Uploaded {len(courses)} courses successfully! CSV saved at {csv_path}", "success")
+            return redirect(url_for("main.upload_catalog"))
+
+    return render_template("upload_catalog.html", form=form)
+
+
+
+def extract_text_from_pdf(filepath):
+    """Extract text from a PDF file."""
+    text = ""
+    with fitz.open(filepath) as doc:
+        for page in doc:
+            text += page.get_text("text") + "\n"
+    return text
+
+def parse_courses(text):
+    """Extract course details from text including prerequisites and description."""
+    lines = text.split("\n")
+    course_data = []
+    
+    course_code, course_name, description, department, prerequisites, corequisites = None, None, "", "", [], []
+
+    for line in lines:
+        # Detect course code patterns like "CSC 101"
+        match = re.match(r"([A-Z]{2,4}\s\d{3})\s(.+?)\s(\d+)(?:-\d+)?$", line)
+        if match:
+            # Store previous course before resetting
+            if course_code:
+                course_data.append({
+                    "course_code": course_code,
+                    "course_name": course_name,
+                    "description": description.strip(),
+                    "department": department,
+                    "prerequisites": prerequisites,
+                    "corequisites": corequisites
+                })
+                description, prerequisites, corequisites = "", [], []  # Reset for next course
+
+            course_code = match.group(1)
+            course_name = match.group(2).strip()
+
+        # Extract additional details
+        elif "Credits" in line:
+            credits_match = re.search(r"(\d+)\s+Credits?", line)
+            if credits_match:
+                credits = int(credits_match.group(1))
+        elif "Department" in line:
+            department = line.split(":")[-1].strip()
+        elif "Prerequisite" in line:
+            prerequisites = re.findall(r"[A-Z]{2,4}\s\d{3}", line)
+        elif "Corequisite" in line:
+            corequisites = re.findall(r"[A-Z]{2,4}\s\d{3}", line)
+        else:
+            description += " " + line.strip()
+
+    # Store the last course in the list
+    if course_code:
+        course_data.append({
+            "course_code": course_code,
+            "course_name": course_name,
+            "description": description.strip(),
+            "department": department,
+            "prerequisites": prerequisites,
+            "corequisites": corequisites
+        })
+
+    return course_data
+
+
+def save_courses_to_db(courses):
+    """Insert parsed course data into the database."""
+    for course in courses:
+        existing_course = Course.query.filter_by(course_code=course["course_code"]).first()
+        
+        if not existing_course:
+            new_course = Course(
+                course_code=course["course_code"],
+                course_name=course["course_name"],
+                description=course["description"],
+                department=course["department"],
+                prerequisites=course["prerequisites"],
+                corequisites=course["corequisites"]
+            )
+            db.session.add(new_course)
+
+    db.session.commit()
+
+
+@main_blueprint.route("/courses", methods=["GET"])
+def get_courses():
+    """Fetch all courses from the database."""
+    courses = Course.query.all()
+    return jsonify([{
+        "course_code": c.course_code,
+        "course_name": c.course_name,
+        "credits": c.credits
+    } for c in courses])
+
+
+
+def save_courses_to_csv(courses, filename="extracted_courses.csv"):
+    """Save extracted course data to a CSV file."""
+    csv_path = os.path.join(UPLOAD_FOLDER, filename)
+    
+    with open(csv_path, mode="w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        writer.writerow(["Course Code", "Course Name", "Description", "Department", "Prerequisites", "Corequisites"])
+        
+        for course in courses:
+            writer.writerow([
+                course["course_code"],
+                course["course_name"],
+                course["description"],
+                course["department"],
+                ", ".join(course["prerequisites"]),
+                ", ".join(course["corequisites"])
+            ])
+
+    return csv_path  # Return the path of the saved CSV file
+
+
+
+@main_blueprint.route("/download_csv")
+def download_csv():
+    """Route to download the generated CSV file."""
+    csv_path = os.path.join(UPLOAD_FOLDER, "extracted_courses.csv")
+    return send_file(csv_path, as_attachment=True, download_name="courses.csv")

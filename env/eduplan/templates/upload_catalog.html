@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Upload Course Catalog (PDF)</h2>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, message in messages %}
+<div class="alert alert-{{ category }}">{{ message }}</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+
+<form method="post" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+
+    <div class="mb-3">
+        <label for="catalog_file" class="form-label">Choose a PDF file:</label>
+        {{ form.catalog_file(class="form-control", id="catalog_file") }}
+    </div>
+
+    <button type="submit" class="btn btn-primary">Upload</button>
+</form>
+{% if csv_generated %}
+    <a href="{{ url_for('main.download_csv') }}" class="btn btn-success">Download Extracted Courses (CSV)</a>
+{% endif %}
+
+{% endblock %}
