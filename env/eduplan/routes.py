@@ -21,7 +21,7 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if not flask_login.current_user.is_authenticated or flask_login.current_user.role != 'admin':
             flash('Unauthorized access', 'danger')
-            return redirect(url_for('main.home'))  # Or wherever you want to redirect non-admins
+            return redirect(url_for('main.home')) 
         return f(*args, **kwargs)
     return decorated_function
 
@@ -284,7 +284,7 @@ def admin():
         users = User.query.all()
     return render_template("admin.html", users=users)
 
-@main_blueprint.route('/admin/delete_user/<int:user_id>', methods=['POST'])  # Added <int:user_id>
+@main_blueprint.route('/admin/delete_user/<int:user_id>', methods=['POST'])  
 @admin_required
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)
@@ -293,7 +293,7 @@ def delete_user(user_id):
     flash('User account soft deleted', 'success')
     return redirect(url_for('main.admin'))
 
-@main_blueprint.route('/admin/restore_user/<int:user_id>', methods=['POST']) # Added <int:user_id>
+@main_blueprint.route('/admin/restore_user/<int:user_id>', methods=['POST'])
 @admin_required
 def restore_user(user_id):
     user = User.query.get_or_404(user_id)
@@ -302,7 +302,7 @@ def restore_user(user_id):
     flash('User account restored', 'success')
     return redirect(url_for('main.admin'))
 
-@main_blueprint.route('/admin/reset_password/<int:user_id>', methods=['POST']) # Added <int:user_id>
+@main_blueprint.route('/admin/reset_password/<int:user_id>', methods=['POST']) 
 @admin_required
 def reset_password(user_id):
     user = User.query.get_or_404(user_id)
