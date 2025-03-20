@@ -34,8 +34,9 @@ def index():
     return render_template("index.html", todos=todos, template_form=TodoForm())
 
 
-@login_required
+
 @main_blueprint.route("/study_planner", methods=["GET", "POST"])
+@login_required
 def study_planner():
     form = EventDeleteForm(request.form)
 
