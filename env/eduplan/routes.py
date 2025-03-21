@@ -520,7 +520,6 @@ def parse_courses(text):
             number = match.group(2)
             course_code = f"{prefix} {number}"
             course_name = match.group(3).strip()
-            credits = int(match.group(4))
 
             # Look up department using prefix
             department = DEPARTMENT_PREFIX_MAP.get(prefix, "Unknown Department")
@@ -573,8 +572,7 @@ def get_courses():
     courses = Course.query.all()
     return jsonify([{
         "course_code": c.course_code,
-        "course_name": c.course_name,
-        "credits": c.credits
+        "course_name": c.course_name
     } for c in courses])
 
 
@@ -608,9 +606,14 @@ def download_csv():
     return send_file(csv_path, as_attachment=True, download_name="courses.csv")
 
 
-@main_blueprint.route("/courses")
+#@main_blueprint.route("/courses")
+#def list_courses():
+#    from eduplan.models import Course
+#    courses = Course.query.order_by(Course.course_code).all()
+#    return render_template("course_list.html", courses=courses)
+
+
+@main_blueprint.route("/course_list")
 def list_courses():
-    from eduplan.models import Course
     courses = Course.query.order_by(Course.course_code).all()
     return render_template("course_list.html", courses=courses)
-

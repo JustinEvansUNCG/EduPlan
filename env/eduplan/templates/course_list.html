@@ -8,21 +8,20 @@
 <table class="table">
     <thead>
         <tr>
+            <th>Department</th>
             <th>Course Code</th>
             <th>Course Name</th>
-            <th>Department</th>
-            <th>Credits</th>
-            <th>Description</th>
+            
         </tr>
     </thead>
     <tbody>
         {% for course in courses %}
         <tr>
+            <td>{{ course.department }}</td>
             <td>{{ course.course_code }}</td>
             <td>{{ course.course_name }}</td>
-            <td>{{ course.department }}</td>
-            <td>{{ course.credits }}</td>
-            <td>{{ course.description }}</td>
+            
+            
         </tr>
         {% endfor %}
     </tbody>
