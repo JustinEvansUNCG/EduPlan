@@ -379,16 +379,130 @@ def extract_text_from_pdf(filepath):
             text += page.get_text("text") + "\n"
     return text
 
+DEPARTMENT_PREFIX_MAP = {
+    "ARS": "Academic Recovery Seminar",
+    "ACC": "Accounting",
+    "IAA": "Advanced Data Analytics",
+    "ADS": "African American and African Diaspora Studies",
+    "ASL": "American Sign Language",
+    "ATY": "Anthropology",
+    "APD": "Apparel Product Design",
+    "ARB": "Arabic",
+    "ARC": "Archaeology",
+    "ART": "Art",
+    "ARE": "Art Education",
+    "ARH": "Art History",
+    "AAD": "Arts Administration",
+    "AST": "Astronomy",
+    "IAB": "Bioinformatics",
+    "BIO": "Biology",
+    "BUS": "Business Administration",
+    "CHE": "Chemistry and Biochemistry",
+    "CHI": "Chinese",
+    "CCI": "Classical Civilization",
+    "CSD": "Communication Sciences and Disorders",
+    "CST": "Communication Studies",
+    "CTR": "Community and Therapeutic Recreation",
+    "CTP": "Comprehensive Transition and Postsecondary Education",
+    "IAC": "Computational Analytics",
+    "CSC": "Computer Science",
+    "CNS": "Consortium",
+    "CRS": "Consumer, Apparel, and Retail Studies",
+    "CED": "Counseling and Educational Development",
+    "IAL": "Cultural Analytics",
+    "DCE": "Dance",
+    "ECO": "Economics",
+    "ELC": "Educational Leadership and Cultural Foundations",
+    "ERM": "Educational Research Methodology",
+    "ENG": "English",
+    "ENT": "Entrepreneurship",
+    "FIN": "Finance",
+    "FYE": "First Year Experience",
+    "FFL": "Foundations for Learning",
+    "FRE": "French",
+    "FMS": "Freshman Seminars Program",
+    "GEN": "Genetic Counseling",
+    "GES": "Geography, Environment, and Sustainability",
+    "IAG": "Geospatial Analytics",
+    "GER": "German",
+    "GRO": "Gerontology",
+    "GRK": "Greek",
+    "GRC": "Grogan College",
+    "IAH": "Health Informatics",
+    "HED": "Higher Education",
+    "HIS": "History",
+    "HSS": "Honors Programs",
+    "HTM": "Hospitality and Tourism Management",
+    "HDF": "Human Development and Family Studies",
+    "BLS": "Humanities",
+    "IAF": "Informatics and Analytics Foundations",
+    "IST": "Information Science",
+    "ISM": "Information Systems and Operations Management",
+    "IPS": "Integrated Professional Studies",
+    "ISL": "Integrated Studies Lab",
+    "IAR": "Interior Architecture",
+    "ITL": "Interlink",
+    "IGS": "International and Global Studies",
+    "ISE": "International Student Exchange",
+    "ITA": "Italian",
+    "JNS": "Japanese Studies",
+    "KIN": "Kinesiology",
+    "KOR": "Korean",
+    "LLC": "Languages, Literatures, and Cultures",
+    "LAT": "Latin",
+    "LIS": "Library and Information Science",
+    "LIB": "University Libraries",
+    "MGT": "Management",
+    "MKT": "Marketing",
+    "MAS": "Master of Applied Arts and Sciences",
+    "MBA": "Master of Business Administration",
+    "MAT": "Mathematics",
+    "MST": "Media Studies",
+    "MCP": "Middle College",
+    "MSC": "Military Science",
+    "MUE": "Music Education",
+    "MUP": "Music Performance",
+    "MUS": "Music Studies",
+    "NAN": "Nanoscience",
+    "NUR": "Nursing",
+    "NTR": "Nutrition",
+    "ONC": "Online NC Interinstitutional",
+    "PCS": "Peace and Conflict Studies",
+    "PHI": "Philosophy",
+    "PHY": "Physics",
+    "PSC": "Political Science",
+    "PSY": "Psychology",
+    "RCO": "Residential College",
+    "RCS": "Retailing and Consumer Studies",
+    "REL": "Religious Studies",
+    "RUS": "Russian",
+    "SCM": "Supply Chain Management",
+    "SES": "Specialized Education Services",
+    "SOC": "Sociology",
+    "SPA": "Spanish",
+    "SSC": "Social Sciences",
+    "STA": "Statistics",
+    "STR": "Strong College",
+    "SWK": "Social Work",
+    "TED": "Teacher Education",
+    "THR": "Theatre",
+    "UNCX": "UNC Exchange",
+    "VPA": "Visual and Performing Arts",
+    "WCV": "Western Civilization",
+    "WGS": "Women's, Gender, and Sexuality Studies"
+}
+
+
 def parse_courses(text):
     """Extract course details from text including prerequisites and description."""
     lines = text.split("\n")
     course_data = []
-    
+
     course_code, course_name, description, department, prerequisites, corequisites = None, None, "", "", [], []
 
     for line in lines:
         # Detect course code patterns like "CSC 101"
-        match = re.match(r"([A-Z]{2,4}\s\d{3})\s(.+?)\s(\d+)(?:-\d+)?$", line)
+        match = re.match(r"([A-Z]{2,4})\s(\d{3})\s(.+?)\s(\d+)(?:-\d+)?$", line)
         if match:
             # Store previous course before resetting
             if course_code:
@@ -402,16 +516,15 @@ def parse_courses(text):
                 })
                 description, prerequisites, corequisites = "", [], []  # Reset for next course
 
-            course_code = match.group(1)
-            course_name = match.group(2).strip()
+            prefix = match.group(1)
+            number = match.group(2)
+            course_code = f"{prefix} {number}"
+            course_name = match.group(3).strip()
+            credits = int(match.group(4))
 
-        # Extract additional details
-        elif "Credits" in line:
-            credits_match = re.search(r"(\d+)\s+Credits?", line)
-            if credits_match:
-                credits = int(credits_match.group(1))
-        elif "Department" in line:
-            department = line.split(":")[-1].strip()
+            # Look up department using prefix
+            department = DEPARTMENT_PREFIX_MAP.get(prefix, "Unknown Department")
+
         elif "Prerequisite" in line:
             prerequisites = re.findall(r"[A-Z]{2,4}\s\d{3}", line)
         elif "Corequisite" in line:
@@ -431,6 +544,8 @@ def parse_courses(text):
         })
 
     return course_data
+
+
 
 
 def save_courses_to_db(courses):
@@ -491,3 +606,11 @@ def download_csv():
     """Route to download the generated CSV file."""
     csv_path = os.path.join(UPLOAD_FOLDER, "extracted_courses.csv")
     return send_file(csv_path, as_attachment=True, download_name="courses.csv")
+
+
+@main_blueprint.route("/courses")
+def list_courses():
+    from eduplan.models import Course
+    courses = Course.query.order_by(Course.course_code).all()
+    return render_template("course_list.html", courses=courses)
+
