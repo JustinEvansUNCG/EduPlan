@@ -1,7 +1,9 @@
-
 {% extends "base.html" %}
-
-
+{% block title %}temp page{% endblock %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+{% endblock %}
 {% block content %}
 <section class="welcome-section">
     <h1>Welcome to EduPlan</h1>
@@ -43,9 +45,5 @@
     <p>- Alex M., Computer Science Major</p>
 </section>
 
-<section class="contact-section">
-    <h2>Contact Us</h2>
-    <p>Have questions? Reach out to our support team!</p>
-    <a href="mailto:support@eduplan.com" class="btn btn-secondary">Contact Support</a>
-</section>
+
 {% endblock %}

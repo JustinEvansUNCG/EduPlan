@@ -1,6 +1,8 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session, current_app
 from eduplan import bcrypt
+
 from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, TranscriptForm
+
 from eduplan import db
 from eduplan.models import study_time, study_event, User
 from flask_bcrypt import Bcrypt
@@ -11,29 +13,37 @@ import flask_login
 from flask_login import login_required, current_user, logout_user, login_user
 import markdown
 from functools import wraps
+
+
 from PyPDF2 import PdfReader
 from werkzeug.utils import secure_filename
 from configs import Config
 import os
 
 
+
 genai.configure(api_key="AIzaSyArG1yXW3d1odahUokxzXgOHejGWrDYxLI")
 
 main_blueprint = Blueprint("main", __name__)
+
+UPLOAD_FOLDER = "uploads"  # Ensure this directory exists
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not flask_login.current_user.is_authenticated or flask_login.current_user.role != 'admin':
             flash('Unauthorized access', 'danger')
-            return redirect(url_for('main.home'))  # Or wherever you want to redirect non-admins
+            return redirect(url_for('main.home')) 
         return f(*args, **kwargs)
     return decorated_function
+
 
 
 @main_blueprint.route('/')
 def home():
     return render_template('home.html')
+
 
 
 @main_blueprint.route("/index", methods=["GET", "POST"])
@@ -383,7 +393,7 @@ def admin():
         users = User.query.all()
     return render_template("admin.html", users=users)
 
-@main_blueprint.route('/admin/delete_user/<int:user_id>', methods=['POST'])  # Added <int:user_id>
+@main_blueprint.route('/admin/delete_user/<int:user_id>', methods=['POST'])  
 @admin_required
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)
@@ -392,7 +402,7 @@ def delete_user(user_id):
     flash('User account soft deleted', 'success')
     return redirect(url_for('main.admin'))
 
-@main_blueprint.route('/admin/restore_user/<int:user_id>', methods=['POST']) # Added <int:user_id>
+@main_blueprint.route('/admin/restore_user/<int:user_id>', methods=['POST'])
 @admin_required
 def restore_user(user_id):
     user = User.query.get_or_404(user_id)
@@ -401,7 +411,7 @@ def restore_user(user_id):
     flash('User account restored', 'success')
     return redirect(url_for('main.admin'))
 
-@main_blueprint.route('/admin/reset_password/<int:user_id>', methods=['POST']) # Added <int:user_id>
+@main_blueprint.route('/admin/reset_password/<int:user_id>', methods=['POST']) 
 @admin_required
 def reset_password(user_id):
     user = User.query.get_or_404(user_id)
@@ -420,3 +430,347 @@ def reset_password(user_id):
 def account_management():
     users = User.query.all()
     return render_template('account_management.html', users=users)
+
+
+#Course Catalog Routes
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'pdf'}
+
+
+@main_blueprint.route("/upload_catalog", methods=["GET", "POST"])
+def upload_catalog():
+    """Handles file upload from the web form and saves extracted data to a CSV."""
+    form = CourseCatalogUploadForm()
+
+    if form.validate_on_submit():
+        file = form.catalog_file.data
+
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(filepath)
+
+            # Extract and parse courses from the PDF
+            extracted_text = extract_text_from_pdf(filepath)
+            courses = parse_courses(extracted_text)
+
+            # Save extracted courses to the database
+            save_courses_to_db(courses)
+
+            #  Save extracted courses to CSV
+            csv_path = save_courses_to_csv(courses)
+
+            flash(f"Uploaded {len(courses)} courses successfully! CSV saved at {csv_path}", "success")
+            return redirect(url_for("main.upload_catalog"))
+
+    return render_template("upload_catalog.html", form=form)
+
+
+
+def extract_text_from_pdf(filepath):
+    """Extract text from a PDF file."""
+    text = ""
+    with fitz.open(filepath) as doc:
+        for page in doc:
+            text += page.get_text("text") + "\n"
+    return text
+
+DEPARTMENT_PREFIX_MAP = {
+    "ARS": "Academic Recovery Seminar",
+    "ACC": "Accounting",
+    "IAA": "Advanced Data Analytics",
+    "ADS": "African American and African Diaspora Studies",
+    "ASL": "American Sign Language",
+    "ATY": "Anthropology",
+    "APD": "Apparel Product Design",
+    "ARB": "Arabic",
+    "ARC": "Archaeology",
+    "ART": "Art",
+    "ARE": "Art Education",
+    "ARH": "Art History",
+    "AAD": "Arts Administration",
+    "AST": "Astronomy",
+    "IAB": "Bioinformatics",
+    "BIO": "Biology",
+    "BUS": "Business Administration",
+    "CHE": "Chemistry and Biochemistry",
+    "CHI": "Chinese",
+    "CCI": "Classical Civilization",
+    "CSD": "Communication Sciences and Disorders",
+    "CST": "Communication Studies",
+    "CTR": "Community and Therapeutic Recreation",
+    "CTP": "Comprehensive Transition and Postsecondary Education",
+    "IAC": "Computational Analytics",
+    "CSC": "Computer Science",
+    "CNS": "Consortium",
+    "CRS": "Consumer, Apparel, and Retail Studies",
+    "CED": "Counseling and Educational Development",
+    "IAL": "Cultural Analytics",
+    "DCE": "Dance",
+    "ECO": "Economics",
+    "ELC": "Educational Leadership and Cultural Foundations",
+    "ERM": "Educational Research Methodology",
+    "ENG": "English",
+    "ENS": "Music Ensemble",
+    "ENT": "Entrepreneurship",
+    "FIN": "Finance",
+    "FYE": "First Year Experience",
+    "FFL": "Foundations for Learning",
+    "FRE": "French",
+    "FMS": "Freshman Seminars Program",
+    "GEN": "Genetic Counseling",
+    "GES": "Geography, Environment, and Sustainability",
+    "IAG": "Geospatial Analytics",
+    "GER": "German",
+    "GRO": "Gerontology",
+    "GRK": "Greek",
+    "GRC": "Grogan College",
+    "IAH": "Health Informatics",
+    "HEA": "Public Health",
+    "HED": "Higher Education",
+    "HHS": "Health and Human Services",
+    "HIS": "History",
+    "HSS": "Honors Programs",
+    "HTM": "Hospitality and Tourism Management",
+    "HDF": "Human Development and Family Studies",
+    "BLS": "Humanities",
+    "IAF": "Informatics and Analytics Foundations",
+    "IST": "Information Science",
+    "ISM": "Information Systems and Operations Management",
+    "IPS": "Integrated Professional Studies",
+    "ISL": "Integrated Studies Lab",
+    "IAR": "Interior Architecture",
+    "ITL": "Interlink",
+    "IGS": "International and Global Studies",
+    "ISE": "International Student Exchange",
+    "ITA": "Italian",
+    "JNS": "Japanese Studies",
+    "KIN": "Kinesiology",
+    "KOR": "Korean",
+    "LLC": "Languages, Literatures, and Cultures",
+    "LAT": "Latin",
+    "LIS": "Library and Information Science",
+    "LIB": "University Libraries",
+    "MGT": "Management",
+    "MKT": "Marketing",
+    "MAS": "Master of Applied Arts and Sciences",
+    "MBA": "Master of Business Administration",
+    "MAT": "Mathematics",
+    "MST": "Media Studies",
+    "MCP": "Middle College",
+    "MSC": "Military Science",
+    "MUE": "Music Education",
+    "MUP": "Music Performance",
+    "MUS": "Music Studies",
+    "NAN": "Nanoscience",
+    "NUR": "Nursing",
+    "NTR": "Nutrition",
+    "ONC": "Online NC Interinstitutional",
+    "PCS": "Peace and Conflict Studies",
+    "PHI": "Philosophy",
+    "PHY": "Physics",
+    "PSC": "Political Science",
+    "PSY": "Psychology",
+    "RCO": "Residential College",
+    "RCS": "Retailing and Consumer Studies",
+    "REL": "Religious Studies",
+    "RUS": "Russian",
+    "SCM": "Supply Chain Management",
+    "SES": "Specialized Education Services",
+    "SOC": "Sociology",
+    "SPA": "Spanish",
+    "SSC": "Social Sciences",
+    "STA": "Statistics",
+    "STR": "Strong College",
+    "SWK": "Social Work",
+    "TED": "Teacher Education",
+    "THR": "Theatre",
+    "UNCX": "UNC Exchange",
+    "VPA": "Visual and Performing Arts",
+    "WCV": "Western Civilization",
+    "WGS": "Women's, Gender, and Sexuality Studies"
+}
+
+
+def parse_courses(text):
+    """Extract course details from text including prerequisites and description."""
+    lines = text.split("\n")
+    course_data = []
+
+    course_code, course_name, description, department, prerequisites, corequisites = None, None, "", "", [], []
+
+    for line in lines:
+        # Detect course code patterns like "CSC 101"
+        match = re.match(r"([A-Z]{2,4})\s(\d{3})\s(.+?)\s(\d+)(?:-\d+)?$", line)
+        if match:
+            # Store previous course before resetting
+            if course_code:
+                course_data.append({
+                    "course_code": course_code,
+                    "course_name": course_name,
+                    "description": description.strip(),
+                    "department": department,
+                    "prerequisites": prerequisites,
+                    "corequisites": corequisites
+                })
+                description, prerequisites, corequisites = "", [], []  # Reset for next course
+
+            prefix = match.group(1)
+            number = match.group(2)
+            course_code = f"{prefix} {number}"
+            course_name = match.group(3).strip()
+
+            # Look up department using prefix
+            department = DEPARTMENT_PREFIX_MAP.get(prefix, "Unknown Department")
+
+        elif "Prerequisite" in line:
+            prerequisites = re.findall(r"[A-Z]{2,4}\s\d{3}", line)
+        elif "Corequisite" in line:
+            corequisites = re.findall(r"[A-Z]{2,4}\s\d{3}", line)
+        else:
+            description += " " + line.strip()
+
+    # Store the last course in the list
+    if course_code:
+        course_data.append({
+            "course_code": course_code,
+            "course_name": course_name,
+            "description": description.strip(),
+            "department": department,
+            "prerequisites": prerequisites,
+            "corequisites": corequisites
+        })
+
+    return course_data
+
+
+
+
+def save_courses_to_db(courses):
+    """Insert parsed course data into the database."""
+    for course in courses:
+        existing_course = Course.query.filter_by(course_code=course["course_code"]).first()
+        
+        if not existing_course:
+            new_course = Course(
+                course_code=course["course_code"],
+                course_name=course["course_name"],
+                description=course["description"],
+                department=course["department"],
+                prerequisites=course["prerequisites"],
+                corequisites=course["corequisites"]
+            )
+            db.session.add(new_course)
+
+    db.session.commit()
+
+
+@main_blueprint.route("/courses", methods=["GET"])
+def get_courses():
+    """Fetch all courses from the database."""
+    courses = Course.query.all()
+    return jsonify([{
+        "course_code": c.course_code,
+        "course_name": c.course_name
+    } for c in courses])
+
+
+
+def save_courses_to_csv(courses, filename="extracted_courses.csv"):
+    """Save extracted course data to a CSV file."""
+    csv_path = os.path.join(UPLOAD_FOLDER, filename)
+    
+    with open(csv_path, mode="w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        writer.writerow(["Course Code", "Course Name", "Description", "Department", "Prerequisites", "Corequisites"])
+        
+        for course in courses:
+            writer.writerow([
+                course["course_code"],
+                course["course_name"],
+                course["description"],
+                course["department"],
+                ", ".join(course["prerequisites"]),
+                ", ".join(course["corequisites"])
+            ])
+
+    return csv_path  # Return the path of the saved CSV file
+
+
+
+@main_blueprint.route("/download_csv")
+def download_csv():
+    """Route to download the generated CSV file."""
+    csv_path = os.path.join(UPLOAD_FOLDER, "extracted_courses.csv")
+    return send_file(csv_path, as_attachment=True, download_name="courses.csv")
+
+
+#@main_blueprint.route("/courses")
+#def list_courses():
+#    from eduplan.models import Course
+#    courses = Course.query.order_by(Course.course_code).all()
+#    return render_template("course_list.html", courses=courses)
+
+
+@main_blueprint.route("/course_list")
+def list_courses():
+    search_query = request.args.get("search", "").strip()
+
+    if search_query:
+        courses = Course.query.filter(
+            Course.course_name.ilike(f"%{search_query}%") |
+            Course.course_code.ilike(f"%{search_query}%")
+        ).all()
+    else:
+        courses = Course.query.all()
+
+    return render_template("course_list.html", courses=courses)
+
+
+@main_blueprint.route('/course/<int:course_id>/edit', methods=['GET', 'POST'])
+def edit_course(course_id):
+    course = Course.query.get_or_404(course_id)
+    form = EditCourseForm(obj=course)
+
+    if form.validate_on_submit():
+        course.course_name = form.course_name.data
+        course.course_code = form.course_code.data
+        course.department = form.department.data
+        course.description = form.description.data
+        course.prerequisites = form.prerequisites.data
+        course.corequisites = form.corequisites.data
+        db.session.commit()
+        flash('Course updated successfully!', 'success')
+        return redirect(url_for('main.course_list'))
+
+    return render_template('edit_course.html', form=form, course=course)
+
+
+@main_blueprint.route('/course/<int:course_id>/delete', methods=['POST'])
+def delete_course(course_id):
+    course = Course.query.get_or_404(course_id)
+    db.session.delete(course)
+    db.session.commit()
+    flash('Course deleted successfully!', 'success')
+    return redirect(url_for('course_list'))
+
+@main_blueprint.route('/course/add', methods=['GET', 'POST'])
+def add_course():
+    form = EditCourseForm()
+
+    if form.validate_on_submit():
+        new_course = Course(
+            course_name=form.course_name.data,
+            course_code=form.course_code.data,
+            department=form.department.data,
+            description=form.description.data,
+            prerequisites=form.prerequisites.data,
+            corequisites=form.corequisites.data
+        )
+        db.session.add(new_course)
+        db.session.commit()
+        flash('New course added!', 'success')
+        return redirect(url_for('main.course_list'))
+
+    return render_template('add_course.html', form=form)

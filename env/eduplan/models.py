@@ -148,10 +148,8 @@ class AdminActivity(db.Model):
 
     def __repr__(self):
         return f"<AdminActivity Admin:{self.admin_id} Action:{self.action_taken}>"
-#
-#
-#
-#
+
+
 class Transcript(db.Model):
     __tablename__ = 'transcripts'
     id = db.Column(db.Integer, primary_key=True)
