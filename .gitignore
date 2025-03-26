@@ -3,3 +3,4 @@ secret_key.json
 configs.py
 migrations/
 *.pyc
+/__pycache__/
