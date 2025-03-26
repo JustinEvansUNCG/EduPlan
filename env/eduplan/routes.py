@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
 from eduplan import bcrypt
-from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, CourseCatalogUploadForm
+from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, CourseCatalogUploadForm, EditCourseForm
 from eduplan import db
 from eduplan.models import study_time, study_event, User
 from flask_bcrypt import Bcrypt
@@ -415,6 +415,7 @@ DEPARTMENT_PREFIX_MAP = {
     "ELC": "Educational Leadership and Cultural Foundations",
     "ERM": "Educational Research Methodology",
     "ENG": "English",
+    "ENS": "Music Ensemble",
     "ENT": "Entrepreneurship",
     "FIN": "Finance",
     "FYE": "First Year Experience",
@@ -429,7 +430,9 @@ DEPARTMENT_PREFIX_MAP = {
     "GRK": "Greek",
     "GRC": "Grogan College",
     "IAH": "Health Informatics",
+    "HEA": "Public Health",
     "HED": "Higher Education",
+    "HHS": "Health and Human Services",
     "HIS": "History",
     "HSS": "Honors Programs",
     "HTM": "Hospitality and Tourism Management",
@@ -615,5 +618,62 @@ def download_csv():
 
 @main_blueprint.route("/course_list")
 def list_courses():
-    courses = Course.query.order_by(Course.course_code).all()
+    search_query = request.args.get("search", "").strip()
+
+    if search_query:
+        courses = Course.query.filter(
+            Course.course_name.ilike(f"%{search_query}%") |
+            Course.course_code.ilike(f"%{search_query}%")
+        ).all()
+    else:
+        courses = Course.query.all()
+
     return render_template("course_list.html", courses=courses)
+
+
+@main_blueprint.route('/course/<int:course_id>/edit', methods=['GET', 'POST'])
+def edit_course(course_id):
+    course = Course.query.get_or_404(course_id)
+    form = EditCourseForm(obj=course)
+
+    if form.validate_on_submit():
+        course.course_name = form.course_name.data
+        course.course_code = form.course_code.data
+        course.department = form.department.data
+        course.description = form.description.data
+        course.prerequisites = form.prerequisites.data
+        course.corequisites = form.corequisites.data
+        db.session.commit()
+        flash('Course updated successfully!', 'success')
+        return redirect(url_for('main.course_list'))
+
+    return render_template('edit_course.html', form=form, course=course)
+
+
+@main_blueprint.route('/course/<int:course_id>/delete', methods=['POST'])
+def delete_course(course_id):
+    course = Course.query.get_or_404(course_id)
+    db.session.delete(course)
+    db.session.commit()
+    flash('Course deleted successfully!', 'success')
+    return redirect(url_for('course_list'))
+
+@main_blueprint.route('/course/add', methods=['GET', 'POST'])
+def add_course():
+    form = EditCourseForm()
+
+    if form.validate_on_submit():
+        new_course = Course(
+            course_name=form.course_name.data,
+            course_code=form.course_code.data,
+            department=form.department.data,
+            description=form.description.data,
+            prerequisites=form.prerequisites.data,
+            corequisites=form.corequisites.data
+        )
+        db.session.add(new_course)
+        db.session.commit()
+        flash('New course added!', 'success')
+        return redirect(url_for('main.course_list'))
+
+    return render_template('add_course.html', form=form)

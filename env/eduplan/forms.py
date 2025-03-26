@@ -50,7 +50,14 @@ class EventModifyForm(FlaskForm):
     #event_creation_type = HiddenField('creation_type')
 
     
-
+class EditCourseForm(FlaskForm):
+    course_name = StringField('Course Name', validators=[DataRequired()])
+    description = StringField('Description')
+    department = StringField('Department', validators=[DataRequired()])
+    course_code = StringField('Course Code', validators=[DataRequired()])
+    prerequisites = StringField('Prerequisites')
+    corequisites = StringField('Corequisites')
+    submit = SubmitField('Update Course')
 
 
 class RegisterForm(FlaskForm):
