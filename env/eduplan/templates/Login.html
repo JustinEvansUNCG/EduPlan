@@ -1,0 +1,26 @@
+{% extends "NoNavBase.html" %}
+{% block title %}login{% endblock %}
+{% block head %}
+{{ super() }}
+{% endblock %}
+{% block content %}
+<section>
+    <h2>Login</h2>
+    <form method="POST" action=''>
+        {{ form.hidden_tag()}}
+        <div>
+            {{form.email.label }}
+            {{ form.email()}}
+        </div>
+        <div>
+            {{form.password.label }}
+            {{ form.password()}}
+        </div>
+        <div>
+            {{ form.submit()}}
+        </div>
+        <a href="{{ url_for('main.sign_up') }}"><span class = "link" >Don't already have an account? Sign up here </span></a>
+     
+    </form>
+</section>
+{% endblock %}
