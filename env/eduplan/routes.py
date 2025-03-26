@@ -1,6 +1,6 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session, current_app
 from eduplan import bcrypt
-from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm
+from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, TranscriptForm
 from eduplan import db
 from eduplan.models import study_time, study_event, User
 from flask_bcrypt import Bcrypt
@@ -11,6 +11,13 @@ import flask_login
 from flask_login import login_required, current_user, logout_user, login_user
 import markdown
 from functools import wraps
+from PyPDF2 import PdfReader
+from werkzeug.utils import secure_filename
+from configs import Config
+import os
+import pymupdf
+import pytesseract
+
 
 genai.configure(api_key="AIzaSyArG1yXW3d1odahUokxzXgOHejGWrDYxLI")
 
@@ -24,6 +31,12 @@ def admin_required(f):
             return redirect(url_for('main.home'))  # Or wherever you want to redirect non-admins
         return f(*args, **kwargs)
     return decorated_function
+
+
+@main_blueprint.route('/')
+def home():
+    return render_template('home.html')
+
 
 @main_blueprint.route("/index", methods=["GET", "POST"])
 def index():
@@ -177,10 +190,11 @@ def login():
         user = User.query.filter_by(email=form.email.data).first()
         if user and bcrypt.check_password_hash(user.password_hash, form.password.data):
             login_user(user)  # Use Flask-Login's login_user()
+            session['user_id'] = user.id
 
             # Use next parameter for redirection
             next_page = request.args.get('next')
-            return redirect(next_page or url_for('main.study_planner'))
+            return redirect(next_page or url_for('main.home'))
 
         else:
             flash('Invalid email or password', 'danger')  # Incorrect login
@@ -222,6 +236,9 @@ def resources():
 def course_content():
     ai_response = None
 
+    transcript_form = TranscriptForm()
+
+
     if request.method == "POST":
         question = request.form.get("question", "").strip()
         
@@ -241,7 +258,73 @@ def course_content():
             else:
                 ai_response = "Error processing AI response."
 
-    return render_template("course_content.html", ai_response=ai_response)
+    return render_template("course_content.html", ai_response=ai_response, transcript_form=transcript_form)
+
+
+
+@main_blueprint.route("/transcript_reader", methods=["POST"])
+def transcript_reader():
+
+
+    transcript_form = TranscriptForm(request.form)
+
+
+    file = request.files["file"]
+    print(os.path.isdir(current_app.config['UPLOAD_FOLDER']))
+    print(current_app.config['UPLOAD_FOLDER'])
+
+    filename = secure_filename(file.filename)
+    print(filename)
+    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+    file.save(file_path)
+
+
+    reader = PdfReader(file_path)
+    page_count = len(reader.pages)
+    completed_list = list()
+    incomplete_list = list()
+
+    
+
+
+    for i in range(page_count):
+
+        page = reader.pages[i]
+        text = page.extract_text()
+        temp_list = text.split("\n")
+
+        
+
+        for item in temp_list:
+            line_check = re.findall("[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9]\s", item)
+
+            if line_check:
+
+                if "still needed:" in item.lower():
+                    incomplete_list.append(item)
+                else:
+                    completed_list.append(item)
+
+
+        
+
+
+
+        #print(len(temp_list))
+
+        #print(text)
+
+        #text_list += temp_list
+        
+    print(*incomplete_list, sep="\n")
+    print("\n\n\n\n\n\n")
+
+    print(*completed_list, sep="\n")
+
+    os.remove(file_path)
+
+
+    return redirect(url_for('main.home'))
 
 
 @main_blueprint.route("/profile", methods=["GET", "POST"])
@@ -273,9 +356,7 @@ def get_events():
     #return jsonify([dict(event) for event in event_items])
 
 
-@main_blueprint.route('/')
-def home():
-    return render_template('home.html')
+
 
 
 

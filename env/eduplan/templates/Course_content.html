@@ -34,4 +34,24 @@
         {% endif %}
     </div>
 </div>
+
+
+
+
+
+
+
+
+<section class="transcript-uploader">
+    <h2>Upload Your Transcript</h2>
+    <form method="POST" id="transcript-form" action="{{ url_for('main.transcript_reader') }}" enctype="multipart/form-data">
+        
+        
+            <input type=file name=file>
+            <input type="submit" value="Upload">
+    </form>
+
+
+</section>
+
 {% endblock %}

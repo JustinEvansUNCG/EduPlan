@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 
-from wtforms import StringField, SubmitField, PasswordField, IntegerField, HiddenField, TimeField, DateField, SelectField
+from wtforms import StringField, SubmitField, PasswordField, IntegerField, HiddenField, TimeField, DateField, SelectField, FileField
 from wtforms.validators import DataRequired, Length, Email, ValidationError, EqualTo
 
 from eduplan import db
@@ -72,3 +72,8 @@ class LoginForm(FlaskForm):
 
 class LogoutForm(FlaskForm):
     submit = SubmitField('Logout')
+
+
+class TranscriptForm(FlaskForm):
+    transcript = FileField('Transcript')
+    submit = SubmitField('Upload Current Transcript')
