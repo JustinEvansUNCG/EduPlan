@@ -3,5 +3,3 @@ secret_key.json
 configs.py
 migrations/
 *.pyc
-
-
