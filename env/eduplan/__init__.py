@@ -20,6 +20,9 @@ def create_app():
     login_manager.init_app(app)
     bcrypt.init_app(app)
 
+    UPLOADS = "./eduplan/static/transcripts"
+    app.config['UPLOAD_FOLDER'] = UPLOADS
+
     from eduplan.models import User
     from eduplan.forms import RegisterForm, LoginForm
 

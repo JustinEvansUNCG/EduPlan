@@ -106,10 +106,20 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
                 <p id="event-modify-info" >
 
                     {{ modify_form.plan_id(id="plan-id") }}
+
+                    {{ modify_form.date.label }}
                     {{ modify_form.date }}
+                    
+                    {{ modify_form.start_time.label }}
                     {{ modify_form.start_time }}
+                    
+                    {{ modify_form.end_time.label }}
                     {{ modify_form.end_time }}
+                    
+                    {{ modify_form.event_title.label }}
                     {{ modify_form.event_title }}
+                    
+                    {{ modify_form.event_description.label }}
                     {{ modify_form.event_description }}
 
                 </p>
@@ -146,19 +156,32 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
                 {{ add_form.csrf_token }}
                 <p id="event-add-info">
 
+                    {{ add_form.date.label }}
                     {{ add_form.date }}
+
+                    {{ add_form.start_time.label }}
                     {{ add_form.start_time }}
+                    
+                    {{ add_form.end_time.label }}
                     {{ add_form.end_time }}
 
+                    {{ add_form.existing_events(id="old-events").label }}
                     {{ add_form.existing_events(id="old-events") }}
 
+                    
                     {{ add_form.event_creation_type(id="event_creation_type") }}
 
                 </p>
 
-                <p id="new-event-info">                    
+                <p id="new-event-info">  
+                    
+                    {{ add_form.event_title.label }}
                     {{ add_form.event_title }}
-                    {{ add_form.event_description }}</p>
+
+                    {{ add_form.event_description.label }}
+                    {{ add_form.event_description }}
+                
+                </p>
 
                 <p>
                     {{ add_form.submit() }}

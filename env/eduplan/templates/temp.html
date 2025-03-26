@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}temp page{% endblock %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet"
+href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<link rel="stylesheet" href="{{ url_for('static', filename='calendar.css') }}">
+{% endblock %}
+{% block content %}
+
+
+    
+
+<main>
+    <div class="calendar-container">
+        <header class="calendar-header">
+            <p class="calendar-current-date"></p>
+            <div id="calendar-mode">
+                <button id="week-button" class="not-selected">Week</button>
+                <button id="month-button" class="selected">Month</button>
+
+            </div>
+            <div class="calendar-navigation">
+                <span id="calendar-prev" 
+                      class="material-symbols-rounded">
+                    chevron_left
+                </span>
+                <span id="calendar-next" 
+                      class="material-symbols-rounded">
+                    chevron_right
+                </span>
+            </div>
+        </header>
+
+        <div class="calendar-body">
+            <ul class="calendar-weekdays">
+                <li>Sun</li>
+                <li>Mon</li>
+                <li>Tue</li>
+                <li>Wed</li>
+                <li>Thu</li>
+                <li>Fri</li>
+                <li>Sat</li>
+            </ul>
+            <ul class="calendar-dates"></ul>
+        </div>
+    </div>
+
+
+
+
+    <script src="{{ url_for('static', filename='temp.js') }}"></script>
+
+
+
+</main>
+
+{% endblock %}
+
+
+
