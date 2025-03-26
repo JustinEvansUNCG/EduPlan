@@ -80,6 +80,8 @@ class LoginForm(FlaskForm):
 class LogoutForm(FlaskForm):
     submit = SubmitField('Logout')
 
-class CourseCatalogUploadForm(FlaskForm):
-    catalog_file = FileField("Upload Course Catalog (PDF)", validators=[DataRequired()])
-    submit = SubmitField("Upload")
+
+class TranscriptForm(FlaskForm):
+    transcript = FileField('Transcript')
+    submit = SubmitField('Upload Current Transcript')
+

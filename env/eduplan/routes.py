@@ -1,6 +1,8 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session, current_app
 from eduplan import bcrypt
-from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, CourseCatalogUploadForm, EditCourseForm
+
+from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, TranscriptForm
+
 from eduplan import db
 from eduplan.models import study_time, study_event, User
 from flask_bcrypt import Bcrypt
@@ -11,11 +13,12 @@ import flask_login
 from flask_login import login_required, current_user, logout_user, login_user
 import markdown
 from functools import wraps
+
+
+from PyPDF2 import PdfReader
 from werkzeug.utils import secure_filename
+from configs import Config
 import os
-import fitz  
-import csv
-from flask import send_file
 
 
 
@@ -37,6 +40,12 @@ def admin_required(f):
 
 
 
+@main_blueprint.route('/')
+def home():
+    return render_template('home.html')
+
+
+
 @main_blueprint.route("/index", methods=["GET", "POST"])
 def index():
 
@@ -46,8 +55,9 @@ def index():
     return render_template("index.html", todos=todos, template_form=TodoForm())
 
 
-@login_required
+
 @main_blueprint.route("/study_planner", methods=["GET", "POST"])
+@login_required
 def study_planner():
     form = EventDeleteForm(request.form)
 
@@ -188,10 +198,11 @@ def login():
         user = User.query.filter_by(email=form.email.data).first()
         if user and bcrypt.check_password_hash(user.password_hash, form.password.data):
             login_user(user)  # Use Flask-Login's login_user()
+            session['user_id'] = user.id
 
             # Use next parameter for redirection
             next_page = request.args.get('next')
-            return redirect(next_page or url_for('main.study_planner'))
+            return redirect(next_page or url_for('main.home'))
 
         else:
             flash('Invalid email or password', 'danger')  # Incorrect login
@@ -205,35 +216,123 @@ def login():
 @login_required
 def resources():
     ai_response = None
+
     if request.method == "POST":
-        question = request.form.get("question", "Explain a general study tip.")
+        question = request.form.get("question", "").strip()
+        
+        if not question:
+            question = "Explain a general study tip."
 
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        response_text = model.generate_content(question).text
+        study_prompt = f"Ensure this is a study-related question. If it isn't, ask the user to rephrase, if it is, answer the question and dont say anything about text before this to the user {question}"
+        blocked_keywords = ["game", "movie", "politics", "news", "celebrity"]
+        print(study_prompt)
+        if any(keyword in question.lower() for keyword in blocked_keywords):
+            ai_response = "This question doesn't seem related to studies. Please ask about a study-related topic."
+        else:
+            model = genai.GenerativeModel("gemini-2.0-flash")
+            response = model.generate_content(study_prompt)
+            if response and response.text:
+                ai_response = markdown.markdown(response.text.strip())
+            else:
+                ai_response = "Error processing AI response."
 
-        response_text = re.sub(r"[*_]+", "", response_text)
-
-        ai_response = response_text
-
-    return render_template("resources.html", ai_response=ai_response)
+    return render_template("Resources.html", ai_response=ai_response)
 
 
 @main_blueprint.route("/course_content", methods=["GET", "POST"])
 @login_required
 def course_content():
     ai_response = None
+
+    transcript_form = TranscriptForm()
+
+
     if request.method == "POST":
-        question = request.form.get("question", "Explain a general study tip.")
+        question = request.form.get("question", "").strip()
+        
+        if not question:
+            question = "Explain a general study tip."
 
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        response_text = model.generate_content(question).text
+        study_prompt = f"Ensure this is a study-related question. If it isn't, ask the user to rephrase, if it is, answer the question and dont say anything about text before this to the user {question}"
+        blocked_keywords = ["game", "movie", "politics", "news", "celebrity"]
+        print(study_prompt)
+        if any(keyword in question.lower() for keyword in blocked_keywords):
+            ai_response = "This question doesn't seem related to studies. Please ask about a study-related topic."
+        else:
+            model = genai.GenerativeModel("gemini-2.0-flash")
+            response = model.generate_content(study_prompt)
+            if response and response.text:
+                ai_response = markdown.markdown(response.text.strip())
+            else:
+                ai_response = "Error processing AI response."
 
-        # Convert AI response from Markdown to HTML (preserves structure)
-        formatted_response = markdown.markdown(response_text)
+    return render_template("course_content.html", ai_response=ai_response, transcript_form=transcript_form)
 
-        ai_response = formatted_response.strip()  
 
-    return render_template("course_content.html", ai_response=ai_response)
+
+@main_blueprint.route("/transcript_reader", methods=["POST"])
+def transcript_reader():
+
+
+    transcript_form = TranscriptForm(request.form)
+
+
+    file = request.files["file"]
+    print(os.path.isdir(current_app.config['UPLOAD_FOLDER']))
+    print(current_app.config['UPLOAD_FOLDER'])
+
+    filename = secure_filename(file.filename)
+    print(filename)
+    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+    file.save(file_path)
+
+
+    reader = PdfReader(file_path)
+    page_count = len(reader.pages)
+    completed_list = list()
+    incomplete_list = list()
+
+    
+
+
+    for i in range(page_count):
+
+        page = reader.pages[i]
+        text = page.extract_text()
+        temp_list = text.split("\n")
+
+        
+
+        for item in temp_list:
+            line_check = re.findall("[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9]\s", item)
+
+            if line_check:
+
+                if "still needed:" in item.lower():
+                    incomplete_list.append(item)
+                else:
+                    completed_list.append(item)
+
+
+        
+
+
+
+        #print(len(temp_list))
+
+        #print(text)
+
+        #text_list += temp_list
+        
+    print(*incomplete_list, sep="\n")
+    print("\n\n\n\n\n\n")
+
+    print(*completed_list, sep="\n")
+
+    os.remove(file_path)
+
+
+    return redirect(url_for('main.home'))
 
 
 @main_blueprint.route("/profile", methods=["GET", "POST"])
@@ -265,9 +364,7 @@ def get_events():
     #return jsonify([dict(event) for event in event_items])
 
 
-@main_blueprint.route('/')
-def home():
-    return render_template('home.html')
+
 
 
 
