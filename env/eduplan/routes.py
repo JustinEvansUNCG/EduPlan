@@ -15,8 +15,6 @@ from PyPDF2 import PdfReader
 from werkzeug.utils import secure_filename
 from configs import Config
 import os
-import pymupdf
-import pytesseract
 
 
 genai.configure(api_key="AIzaSyArG1yXW3d1odahUokxzXgOHejGWrDYxLI")
