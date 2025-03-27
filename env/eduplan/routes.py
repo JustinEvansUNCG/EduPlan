@@ -14,14 +14,11 @@ from flask_login import login_required, current_user, logout_user, login_user
 import markdown
 from functools import wraps
 import json
-
 from PyPDF2 import PdfReader
 from werkzeug.utils import secure_filename
 from configs import Config
 import os
-
-import os
-import json
+import requests
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 key_path = os.path.join(BASE_DIR, 'api_keys.json')
@@ -32,6 +29,8 @@ with open(key_path, 'r') as file:
 gemini_key = data["GeminiAPIToken"]
 genai.configure(api_key=gemini_key)
 
+canvas_api_token = data["CanvasAPIToken"]
+canvas_api_url = "https://uncg.instructure.com"
 
 main_blueprint = Blueprint("main", __name__)
 
@@ -225,16 +224,20 @@ def login():
 @login_required
 def resources():
     ai_response = None
+    canvas_courses = []
 
     if request.method == "POST":
         question = request.form.get("question", "").strip()
-        
         if not question:
             question = "Explain a general study tip."
 
-        study_prompt = f"Ensure this is a study-related question. If it isn't, ask the user to rephrase, if it is, answer the question and dont say anything about text before this to the user {question}"
+        study_prompt = (
+            f"Ensure this is a study-related question. "
+            f"If it isn't, ask the user to rephrase. "
+            f"If it is, answer the question and don’t say anything about the previous text. {question}"
+        )
         blocked_keywords = ["game", "movie", "politics", "news", "celebrity"]
-        print(study_prompt)
+
         if any(keyword in question.lower() for keyword in blocked_keywords):
             ai_response = "This question doesn't seem related to studies. Please ask about a study-related topic."
         else:
@@ -244,9 +247,25 @@ def resources():
                 ai_response = markdown.markdown(response.text.strip())
             else:
                 ai_response = "Error processing AI response."
-            
+        print(canvas_api_url)
+    try:
+        headers = {"Authorization": f"Bearer {canvas_api_token}"}
+        res = requests.get(f"{canvas_api_url}/api/v1/courses", headers=headers)
         
-    return render_template("Resources.html", ai_response=ai_response)
+        
+        if res.status_code == 200:
+            #"enrollments": course["enrollements"][0]["enrollment_state"]
+            canvas_courses = [
+                {"id": course["id"], "name": course["name"], "enrollments": course["enrollments"][0]["enrollment_state"]}
+                for course in res.json()
+                if not course.get("access_restricted_by_date")
+            ]
+            print(canvas_courses)
+            
+    except Exception as e:
+        print(f"Canvas API error: {e}")
+
+    return render_template("Resources.html", ai_response=ai_response, canvas_courses=canvas_courses)
 
 
 @main_blueprint.route("/course_content", methods=["GET", "POST"])
