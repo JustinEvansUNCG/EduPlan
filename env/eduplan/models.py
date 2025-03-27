@@ -33,6 +33,7 @@ class Course(db.Model):
     department = db.Column(db.String(80), nullable=False)
     prerequisites = db.Column(db.ARRAY(db.String), nullable=True)  
     corequisites = db.Column(db.ARRAY(db.String), nullable=True) 
+    credits = db.Column(db.String(20), nullable=False)
     last_updated = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
