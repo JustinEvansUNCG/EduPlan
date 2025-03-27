@@ -9,12 +9,13 @@
     <form method="POST" action="/resources">
         <div class="topic-list">
             <label for="topicDropdown">Courses:</label>
-            <select id="topicDropdown">
+            <select id="topicDropdown" name="selected_course" required>
                 <option value="">-- Select a Course --</option>
                 {% for course in canvas_courses %}
-                    <option value="{{ course.id }}">{{ course.name }}</option>
+                    <option value="{{ course.name }}">{{ course.name }}</option>
                 {% endfor %}
             </select>
+            
         </div>
         
 

@@ -228,14 +228,18 @@ def resources():
 
     if request.method == "POST":
         question = request.form.get("question", "").strip()
+        selected_course = request.form.get("selected_course", "").strip()
+
         if not question:
             question = "Explain a general study tip."
 
+        course_info = f" This question is related to the course: {selected_course}." if selected_course else ""
         study_prompt = (
-            f"Ensure this is a study-related question. "
+            f"Ensure this is a question related to: {course_info} "
             f"If it isn't, ask the user to rephrase. "
-            f"If it is, answer the question and don’t say anything about the previous text. {question}"
+            f"If it is, answer the question and don’t say anything about anything before this text {question}"
         )
+        print(study_prompt)
         blocked_keywords = ["game", "movie", "politics", "news", "celebrity"]
 
         if any(keyword in question.lower() for keyword in blocked_keywords):
@@ -247,7 +251,6 @@ def resources():
                 ai_response = markdown.markdown(response.text.strip())
             else:
                 ai_response = "Error processing AI response."
-        print(canvas_api_url)
     try:
         headers = {"Authorization": f"Bearer {canvas_api_token}"}
         res = requests.get(f"{canvas_api_url}/api/v1/courses", headers=headers)
@@ -260,7 +263,6 @@ def resources():
                 for course in res.json()
                 if not course.get("access_restricted_by_date")
             ]
-            print(canvas_courses)
             
     except Exception as e:
         print(f"Canvas API error: {e}")
