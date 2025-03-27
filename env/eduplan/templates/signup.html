@@ -2,33 +2,44 @@
 {% block title %}signup{% endblock %}
 {% block head %}
 {{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
 {% endblock %}
 {% block content %}
-<section>
-    <h2>Create an Account</h2>
-    <form method="POST" action=''>
-        {{ form.hidden_tag()}}
-        <div>
-            {{form.name.label }}
-            {{ form.name()}}
-        </div>
-        <div>
-            {{form.email.label }}
-            {{ form.email()}}
-        </div>
-        <div>
-            {{form.password.label }}
-            {{ form.password()}}
-        </div>
-        <div>
-            {{form.confirm_password.label }}
-            {{ form.confirm_password()}}
-        </div>
-        <div>
-            {{ form.submit()}}
-        </div>
-        <a href="{{ url_for('main.login') }}"><span class = "link" >Already have an account? Login here </span></a>
-     
-    </form>
-</section>
+<div class="login-layout">
+    <a href="{{ url_for('main.home') }}" class="corner-logo" title="Go to Home">
+        <img src="{{ url_for('static', filename='eduplan_hat.png') }}" alt="Home Icon"></a>
+    <div class="login-left">
+        <section class="auth-box">
+
+            <h2>Create an Account</h2>
+            <form method="POST" action=''>
+                {{ form.hidden_tag()}}
+                <div>
+                    {{form.name.label }}
+                    {{ form.name()}}
+                </div>
+                <div>
+                    {{form.email.label }}
+                    {{ form.email()}}
+                </div>
+                <div>
+                    {{form.password.label }}
+                    {{ form.password()}}
+                </div>
+                <div>
+                    {{form.confirm_password.label }}
+                    {{ form.confirm_password()}}
+                </div>
+                <div>
+                    {{ form.submit()}}
+                </div>
+                <a href="{{ url_for('main.login') }}"><span class="link">Already have an account? Login here </span></a>
+
+            </form>
+        </section>
+    </div>
+    <div class="login-right">
+        <a href="{{ url_for('main.home') }}"><img src="{{ url_for('static', filename='eduplan4.png') }}" alt="EduPlan Logo"></a>
+    </div>
+</div>
 {% endblock %}

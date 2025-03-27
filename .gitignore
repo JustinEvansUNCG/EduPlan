@@ -4,4 +4,5 @@ configs.py
 migrations/
 *.pyc
 /__pycache__/
+api_keys.json
 
