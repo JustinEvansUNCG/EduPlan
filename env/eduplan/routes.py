@@ -4,7 +4,7 @@ from eduplan import bcrypt
 from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, TranscriptForm
 
 from eduplan import db
-from eduplan.models import study_time, study_event, User
+from eduplan.models import study_time, study_event, User, CourseContentAssistance
 from flask_bcrypt import Bcrypt
 import google.generativeai as genai
 import re
@@ -13,16 +13,25 @@ import flask_login
 from flask_login import login_required, current_user, logout_user, login_user
 import markdown
 from functools import wraps
-
+import json
 
 from PyPDF2 import PdfReader
 from werkzeug.utils import secure_filename
 from configs import Config
 import os
 
+import os
+import json
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+key_path = os.path.join(BASE_DIR, 'api_keys.json')
 
-genai.configure(api_key="AIzaSyArG1yXW3d1odahUokxzXgOHejGWrDYxLI")
+with open(key_path, 'r') as file:
+    data = json.load(file)
+
+gemini_key = data["GeminiAPIToken"]
+genai.configure(api_key=gemini_key)
+
 
 main_blueprint = Blueprint("main", __name__)
 
@@ -235,7 +244,8 @@ def resources():
                 ai_response = markdown.markdown(response.text.strip())
             else:
                 ai_response = "Error processing AI response."
-
+            
+        
     return render_template("Resources.html", ai_response=ai_response)
 
 
@@ -246,14 +256,13 @@ def course_content():
 
     transcript_form = TranscriptForm()
 
-
     if request.method == "POST":
         question = request.form.get("question", "").strip()
         
         if not question:
             question = "Explain a general study tip."
 
-        study_prompt = f"Ensure this is a study-related question. If it isn't, ask the user to rephrase, if it is, answer the question and dont say anything about text before this to the user {question}"
+        study_prompt = f"Ensure this is a study-related question. If it isn't, ask the user to rephrase, if it is, answer the question and dont say anything about text before this to the user, If the text that follows looks like transcript make sure you consider tailoring your responses based on it {question} "
         blocked_keywords = ["game", "movie", "politics", "news", "celebrity"]
         print(study_prompt)
         if any(keyword in question.lower() for keyword in blocked_keywords):
@@ -265,8 +274,23 @@ def course_content():
                 ai_response = markdown.markdown(response.text.strip())
             else:
                 ai_response = "Error processing AI response."
+        
+        if response and response.text:
+                clean_text = response.text.strip()
+                ai_response = markdown.markdown(clean_text)
+                entry = CourseContentAssistance(
+                    user_id=current_user.id,
+                    question=question,
+                    ai_response=clean_text
+                )
+                print(entry.question)
+                print(entry.question)
+                db.session.add(entry)
+                db.session.commit()
+        else:
+                ai_response = "Error processing AI response."
 
-    return render_template("course_content.html", ai_response=ai_response, transcript_form=transcript_form)
+    return render_template("course_content.html", ai_response=ai_response,  transcript_form=transcript_form)
 
 
 
