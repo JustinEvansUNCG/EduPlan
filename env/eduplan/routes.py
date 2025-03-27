@@ -23,6 +23,7 @@ import requests
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 key_path = os.path.join(BASE_DIR, 'api_keys.json')
 
+
 with open(key_path, 'r') as file:
     data = json.load(file)
 
@@ -345,11 +346,13 @@ def transcript_reader():
         page = reader.pages[i]
         text = page.extract_text()
         temp_list = text.split("\n")
+        print(text)
 
-        
+        course_code_pattern_inc = "\s[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9]"
+        course_code_pattern_com = "[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9]\s"
 
         for item in temp_list:
-            line_check = re.findall("[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9]\s", item)
+            line_check = re.findall(course_code_pattern_com, item) + re.findall(course_code_pattern_inc, item) + re.findall("[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9][L]\s", item)
 
             if line_check:
 
@@ -373,6 +376,34 @@ def transcript_reader():
     print("\n\n\n\n\n\n")
 
     print(*completed_list, sep="\n")
+
+
+    for item in completed_list:
+
+        line_check = re.findall(course_code_pattern_com, item) + re.findall("[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9][L]\s", item)
+        grades_check = re.findall("\s[a-zA-Z][+]\s[0-9]", item) + re.findall("\s[a-zA-Z]\s[0-9]", item) + re.findall("\s[a-zA-Z][-]\s[0-9]", item)
+        
+        print(line_check)
+        grade = ""
+        
+        if len(grades_check) > 0:
+            grade = str(grades_check[0])
+            print(grade[1] + grade[2])
+            #print(grades_check)
+
+    print("\n\n\n\n\n")
+
+    for item in incomplete_list:
+
+        line_check = re.findall(course_code_pattern_inc, item) + re.findall("[o-pO-P][r-sR-S]\s[0-9][0-9][0-9]\s", item) + re.findall("[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9][:][0-9][0-9][0-9]", item)
+        requirement_name = item.split("Still needed:")
+
+        course_code = str(line_check[0])
+        course_dept = course_code[0] + course_code[1] + course_code[2]
+        
+        print(*line_check, sep=", ")
+
+        print("Requirement name: ", requirement_name[0])
 
     os.remove(file_path)
 
