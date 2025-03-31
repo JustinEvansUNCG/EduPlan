@@ -55,6 +55,7 @@ class EditCourseForm(FlaskForm):
     description = StringField('Description')
     department = StringField('Department', validators=[DataRequired()])
     course_code = StringField('Course Code', validators=[DataRequired()])
+    credits = StringField('Credits', validators=[DataRequired()])
     prerequisites = StringField('Prerequisites')
     corequisites = StringField('Corequisites')
     submit = SubmitField('Update Course')
@@ -84,4 +85,9 @@ class LogoutForm(FlaskForm):
 class TranscriptForm(FlaskForm):
     transcript = FileField('Transcript')
     submit = SubmitField('Upload Current Transcript')
+
+class CourseCatalogUploadForm(FlaskForm):
+    catalog_file = FileField("Upload Course Catalog (PDF)")
+    submit = SubmitField("Upload")
+
 

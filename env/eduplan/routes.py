@@ -1,10 +1,10 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session, current_app
 from eduplan import bcrypt
 
-from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, TranscriptForm
+from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, TranscriptForm, CourseCatalogUploadForm, EditCourseForm
 
 from eduplan import db
-from eduplan.models import study_time, study_event, User, CourseContentAssistance
+from eduplan.models import study_time, study_event, User, CourseContentAssistance, ClassStatus
 from flask_bcrypt import Bcrypt
 import google.generativeai as genai
 import re
@@ -13,7 +13,10 @@ import flask_login
 from flask_login import login_required, current_user, logout_user, login_user
 import markdown
 from functools import wraps
+import fitz
+from flask import send_file
 import json
+
 from PyPDF2 import PdfReader
 from werkzeug.utils import secure_filename
 from configs import Config
@@ -335,8 +338,12 @@ def transcript_reader():
 
     reader = PdfReader(file_path)
     page_count = len(reader.pages)
-    completed_list = list()
-    incomplete_list = list()
+    course_list = list()
+
+
+    old_data = db.session.query(ClassStatus).filter_by(user_id=session['user_id']).delete()
+    #db.session.delete(old_data)
+    db.session.commit()
 
     
 
@@ -348,62 +355,94 @@ def transcript_reader():
         temp_list = text.split("\n")
         print(text)
 
-        course_code_pattern_inc = "\s[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9]"
-        course_code_pattern_com = "[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9]\s"
+        course_code_pattern = "[A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]L|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]|and [0-9][0-9][0-9]L|or [0-9][0-9][0-9]L|and [0-9][0-9][0-9]|or [0-9][0-9][0-9]"
+
+        
 
         for item in temp_list:
-            line_check = re.findall(course_code_pattern_com, item) + re.findall(course_code_pattern_inc, item) + re.findall("[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9][L]\s", item)
+            line_check = re.findall(course_code_pattern, item)
 
             if line_check:
 
-                if "still needed:" in item.lower():
-                    incomplete_list.append(item)
-                else:
-                    completed_list.append(item)
+                course_list.append(item)
+
+    print(*course_list, sep="\n")
 
 
-        
+    incomplete_list = list()
+    complete_list = list()
+
+
+    for item in course_list:
+
+        line_check = re.findall(course_code_pattern, item)
+        grades_check = re.findall("[A-Z][+] [0-9][A-Z][a-z][a-z]|[A-Z]- [0-9][A-Z][a-z][a-z]|[A-Z] [0-9][A-Z][a-z][a-z]|[A-Z][+] [0-9] [A-Z][a-z][a-z]|[A-Z]- [0-9] [A-Z][a-z][a-z]|[A-Z] [0-9] [A-Z][a-z][a-z]", item)
+
+        #lab_check = re.findall("[A-Z][A-Z][A-Z]\s[0-9][0-9][0-9][L]\s", item)
+
+        completed_check = re.findall("[a-z][a-z][a-z]\s[0-9]", item)
+        inc_check = re.findall("[1-9][0-9] Credits|[1-9] Credits", item)
+        grades = list()
 
 
 
-        #print(len(temp_list))
+    #some issues remain with cases on the transcript that say "or"
+        if inc_check:
+            if len(line_check) > 1:
+                for i in range(len(line_check)):
+                    if "and" in line_check[i]:
+                        line_check[i] = line_check[i].replace("and", line_check[0][0:3])
+                        incomplete_list.append(line_check[i])
+                        if i == len(line_check)-1:
+                            incomplete_list.append(line_check[0])
 
-        #print(text)
+                    if "or" in line_check[i]:
+                        line_check[0] = line_check[0] + "-" + line_check[i][3:6]
+                        if i == len(line_check)-1:
+                            incomplete_list.append(line_check[0])
 
-        #text_list += temp_list
-        
+
+            else:
+                incomplete_list.append(line_check[0])
+
+            
+        elif line_check and grades_check:
+            #print(grades_check[0])
+            grade = grades_check[0][0] + grades_check[0][1]
+            grade = grade.replace(" ", "")
+            grades.append(grade)
+            #line_check.append(grade)
+            complete_list.append(line_check[0])
+
+    complete_list = set(complete_list)
+    incomplete_list = set(incomplete_list)
+    print("Incompleted courses:")
     print(*incomplete_list, sep="\n")
-    print("\n\n\n\n\n\n")
+    print("\n\n\n\n\n\n Completed courses:")
+    print(*complete_list, sep="\n")
 
-    print(*completed_list, sep="\n")
+
+    duplicates = complete_list.intersection(incomplete_list)
+
+    incomplete_list.difference_update(duplicates)
+
+    print("Incompleted courses:")
+    print(*duplicates, sep="\n")
 
 
-    for item in completed_list:
+    for courses in complete_list:
+        course = ClassStatus(user_id = session['user_id'], course_code = courses, completed = True)
+        db.session.add(course)
+        db.session.commit()
+        print()
+    
+    for courses in incomplete_list:
+        course = ClassStatus(user_id = session['user_id'], course_code = courses, completed = False)
+        db.session.add(course)
+        db.session.commit()
+        print()
 
-        line_check = re.findall(course_code_pattern_com, item) + re.findall("[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9][L]\s", item)
-        grades_check = re.findall("\s[a-zA-Z][+]\s[0-9]", item) + re.findall("\s[a-zA-Z]\s[0-9]", item) + re.findall("\s[a-zA-Z][-]\s[0-9]", item)
-        
-        print(line_check)
-        grade = ""
-        
-        if len(grades_check) > 0:
-            grade = str(grades_check[0])
-            print(grade[1] + grade[2])
-            #print(grades_check)
 
-    print("\n\n\n\n\n")
-
-    for item in incomplete_list:
-
-        line_check = re.findall(course_code_pattern_inc, item) + re.findall("[o-pO-P][r-sR-S]\s[0-9][0-9][0-9]\s", item) + re.findall("[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9][:][0-9][0-9][0-9]", item)
-        requirement_name = item.split("Still needed:")
-
-        course_code = str(line_check[0])
-        course_dept = course_code[0] + course_code[1] + course_code[2]
-        
-        print(*line_check, sep=", ")
-
-        print("Requirement name: ", requirement_name[0])
 
     os.remove(file_path)
 
@@ -515,8 +554,9 @@ def allowed_file(filename):
 
 
 @main_blueprint.route("/upload_catalog", methods=["GET", "POST"])
+
 def upload_catalog():
-    """Handles file upload from the web form and saves extracted data to a CSV."""
+    
     form = CourseCatalogUploadForm()
 
     if form.validate_on_submit():
@@ -534,10 +574,9 @@ def upload_catalog():
             # Save extracted courses to the database
             save_courses_to_db(courses)
 
-            #  Save extracted courses to CSV
-            csv_path = save_courses_to_csv(courses)
+            
 
-            flash(f"Uploaded {len(courses)} courses successfully! CSV saved at {csv_path}", "success")
+            
             return redirect(url_for("main.upload_catalog"))
 
     return render_template("upload_catalog.html", form=form)
@@ -674,7 +713,7 @@ def parse_courses(text):
     lines = text.split("\n")
     course_data = []
 
-    course_code, course_name, description, department, prerequisites, corequisites = None, None, "", "", [], []
+    course_code, course_name, description, department, prerequisites, corequisites, credits = None, None, "", "", [], [], ""
 
     for line in lines:
         # Detect course code patterns like "CSC 101"
@@ -687,15 +726,18 @@ def parse_courses(text):
                     "course_name": course_name,
                     "description": description.strip(),
                     "department": department,
+                    "credits": credits,
                     "prerequisites": prerequisites,
                     "corequisites": corequisites
                 })
-                description, prerequisites, corequisites = "", [], []  # Reset for next course
+                description, prerequisites, corequisites, credits = "", [], [], ""  # Reset for next course
 
             prefix = match.group(1)
             number = match.group(2)
             course_code = f"{prefix} {number}"
             course_name = match.group(3).strip()
+            credits = match.group(4)
+
 
             # Look up department using prefix
             department = DEPARTMENT_PREFIX_MAP.get(prefix, "Unknown Department")
@@ -714,6 +756,7 @@ def parse_courses(text):
             "course_name": course_name,
             "description": description.strip(),
             "department": department,
+            "credits": credits,
             "prerequisites": prerequisites,
             "corequisites": corequisites
         })
@@ -734,6 +777,7 @@ def save_courses_to_db(courses):
                 course_name=course["course_name"],
                 description=course["description"],
                 department=course["department"],
+                credits=course["credits"],
                 prerequisites=course["prerequisites"],
                 corequisites=course["corequisites"]
             )
@@ -753,43 +797,13 @@ def get_courses():
 
 
 
-def save_courses_to_csv(courses, filename="extracted_courses.csv"):
-    """Save extracted course data to a CSV file."""
-    csv_path = os.path.join(UPLOAD_FOLDER, filename)
-    
-    with open(csv_path, mode="w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
-        writer.writerow(["Course Code", "Course Name", "Description", "Department", "Prerequisites", "Corequisites"])
-        
-        for course in courses:
-            writer.writerow([
-                course["course_code"],
-                course["course_name"],
-                course["description"],
-                course["department"],
-                ", ".join(course["prerequisites"]),
-                ", ".join(course["corequisites"])
-            ])
-
-    return csv_path  # Return the path of the saved CSV file
 
 
 
-@main_blueprint.route("/download_csv")
-def download_csv():
-    """Route to download the generated CSV file."""
-    csv_path = os.path.join(UPLOAD_FOLDER, "extracted_courses.csv")
-    return send_file(csv_path, as_attachment=True, download_name="courses.csv")
-
-
-#@main_blueprint.route("/courses")
-#def list_courses():
-#    from eduplan.models import Course
-#    courses = Course.query.order_by(Course.course_code).all()
-#    return render_template("course_list.html", courses=courses)
 
 
 @main_blueprint.route("/course_list")
+@admin_required
 def list_courses():
     search_query = request.args.get("search", "").strip()
 
@@ -797,14 +811,15 @@ def list_courses():
         courses = Course.query.filter(
             Course.course_name.ilike(f"%{search_query}%") |
             Course.course_code.ilike(f"%{search_query}%")
-        ).all()
+        ).order_by(Course.course_code.asc()).all()
     else:
-        courses = Course.query.all()
+        courses = Course.query.order_by(Course.course_code.asc()).all()
 
     return render_template("course_list.html", courses=courses)
 
 
 @main_blueprint.route('/course/<int:course_id>/edit', methods=['GET', 'POST'])
+@admin_required
 def edit_course(course_id):
     course = Course.query.get_or_404(course_id)
     form = EditCourseForm(obj=course)
@@ -815,23 +830,26 @@ def edit_course(course_id):
         course.department = form.department.data
         course.description = form.description.data
         course.prerequisites = form.prerequisites.data
+        course.credits = form.credits.data
         course.corequisites = form.corequisites.data
         db.session.commit()
         flash('Course updated successfully!', 'success')
-        return redirect(url_for('main.course_list'))
+        return redirect(url_for('main.list_courses'))
 
     return render_template('edit_course.html', form=form, course=course)
 
 
 @main_blueprint.route('/course/<int:course_id>/delete', methods=['POST'])
+@admin_required
 def delete_course(course_id):
     course = Course.query.get_or_404(course_id)
     db.session.delete(course)
     db.session.commit()
     flash('Course deleted successfully!', 'success')
-    return redirect(url_for('course_list'))
+    return redirect(url_for('main.list_courses'))
 
 @main_blueprint.route('/course/add', methods=['GET', 'POST'])
+@admin_required
 def add_course():
     form = EditCourseForm()
 
@@ -841,12 +859,13 @@ def add_course():
             course_code=form.course_code.data,
             department=form.department.data,
             description=form.description.data,
+            credits=form.credits.data,
             prerequisites=form.prerequisites.data,
             corequisites=form.corequisites.data
         )
         db.session.add(new_course)
         db.session.commit()
         flash('New course added!', 'success')
-        return redirect(url_for('main.course_list'))
+        return redirect(url_for('main.list_courses'))
 
     return render_template('add_course.html', form=form)
