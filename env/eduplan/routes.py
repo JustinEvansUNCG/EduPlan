@@ -419,7 +419,10 @@ def transcript_reader():
     
     for i in range(len(courses)):
         
-        course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i], completed = False)
+        if grades[i] is not "":
+            course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i], completed = True)
+        else:
+            course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i], completed = False)
         db.session.add(course)
         db.session.commit()
         #print(courses[i], grades[i])
