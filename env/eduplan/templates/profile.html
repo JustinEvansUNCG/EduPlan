@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Your Profile</h2>
+    <p><strong>Name:</strong> {{ user.name }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+
+    <hr>
+    <h4>Upload Transcript</h4>
+    <form method="POST" action="{{ url_for('main.transcript_reader') }}" enctype="multipart/form-data">
+        <input type="file" name="transcript" class="form-control mb-2" required>
+        <button type="submit" class="btn btn-secondary">Upload</button>
+    </form>
+
+    <hr>
+    <h4>Canvas Access Token</h4>
+
+    {% if message %}
+    <div class="success-message">{{ message }}</div>
+    {% endif %}
+
+    <div class="token-instructions">
+        <h5>🔑 How to Generate a Canvas Token</h5>
+        <ol>
+            <li>🔗 Go to <a href="https://uncg.instructure.com" target="_blank">uncg.instructure.com</a> and log in</li>
+            <li>👤 Click <strong>Account</strong> → <strong>Settings</strong></li>
+            <li>⚙️ Scroll to <strong>Approved Integrations</strong></li>
+            <li>➕ Click <strong>+ New Access Token</strong></li>
+            <li>✏️ Fill in:
+                <ul>
+                    <li><strong>Purpose:</strong> <code>EduPlan Integration</code></li>
+                    <li><strong>Expiration Date:</strong> last day of class (e.g. <code>2025-05-02</code>)</li>
+                </ul>
+            </li>
+            <li>📋 Click <strong>Generate Token</strong></li>
+            <li>📥 Paste the token below</li>
+        </ol>
+    </div>
+
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <label for="token">{{ form.token.label }}</label><br>
+        {{ form.token(class="form-control") }}<br><br>
+        {{ form.submit(class="btn-primary") }}
+    </form>
+    {%endblock%}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Regenerate Canvas Token</h2>
+<p>If your Canvas token has expired, paste a new one here to continue accessing your assignments.</p>
+<form method="POST">
+  {{ form.hidden_tag() }}
+  <div>
+    {{ form.token.label }}<br>
+    {{ form.token(size=80) }}
+  </div>
+  <br>
+  {{ form.submit() }}
+</form>
+{% endblock %}

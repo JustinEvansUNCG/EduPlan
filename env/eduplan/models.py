@@ -17,6 +17,8 @@ class User(db.Model, UserMixin):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
     is_deleted = db.Column(db.Boolean, default=False, nullable=False)
+    canvas_token = db.Column(db.String(255))
+    canvas_user_id = db.Column(db.String(100))
 
     def __repr__(self):
         return f"<User {self.email}>"

@@ -227,3 +227,60 @@ html, body {
     display: flex;
     flex-direction: column;
 }
+
+.user-dropdown {
+    position: relative;
+    display: inline-block;
+    margin-left: 1rem;
+  }
+  
+  .user-circle {
+    width: 40px;
+    height: 40px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  
+  .dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: white;
+    min-width: 120px;
+    box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+    z-index: 1;
+    padding: 0.5rem;
+    border-radius: 5px;
+  }
+  
+.dropdown-content a,
+.dropdown-content .dropdown-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  background: none;
+  border: none;
+  color: black;
+  font-family: inherit;
+  font-size: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.dropdown-content a:hover,
+.dropdown-content .dropdown-link:hover {
+  background-color: #f0f0f0;
+}
+
+  
+  .show {
+    display: block;
+  }
+  
