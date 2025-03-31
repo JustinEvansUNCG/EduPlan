@@ -4,7 +4,7 @@ from eduplan import bcrypt
 from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, TranscriptForm, CourseCatalogUploadForm, EditCourseForm
 
 from eduplan import db
-from eduplan.models import study_time, study_event, User, CourseContentAssistance
+from eduplan.models import study_time, study_event, User, CourseContentAssistance, ClassStatus
 from flask_bcrypt import Bcrypt
 import google.generativeai as genai
 import re
@@ -338,8 +338,12 @@ def transcript_reader():
 
     reader = PdfReader(file_path)
     page_count = len(reader.pages)
-    completed_list = list()
-    incomplete_list = list()
+    course_list = list()
+
+
+    old_data = db.session.query(ClassStatus).filter_by(user_id=session['user_id']).delete()
+    #db.session.delete(old_data)
+    db.session.commit()
 
     
 
@@ -351,62 +355,94 @@ def transcript_reader():
         temp_list = text.split("\n")
         print(text)
 
-        course_code_pattern_inc = "\s[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9]"
-        course_code_pattern_com = "[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9]\s"
+        course_code_pattern = "[A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]L|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]|and [0-9][0-9][0-9]L|or [0-9][0-9][0-9]L|and [0-9][0-9][0-9]|or [0-9][0-9][0-9]"
+
+        
 
         for item in temp_list:
-            line_check = re.findall(course_code_pattern_com, item) + re.findall(course_code_pattern_inc, item) + re.findall("[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9][L]\s", item)
+            line_check = re.findall(course_code_pattern, item)
 
             if line_check:
 
-                if "still needed:" in item.lower():
-                    incomplete_list.append(item)
-                else:
-                    completed_list.append(item)
+                course_list.append(item)
+
+    print(*course_list, sep="\n")
 
 
-        
+    incomplete_list = list()
+    complete_list = list()
+
+
+    for item in course_list:
+
+        line_check = re.findall(course_code_pattern, item)
+        grades_check = re.findall("[A-Z][+] [0-9][A-Z][a-z][a-z]|[A-Z]- [0-9][A-Z][a-z][a-z]|[A-Z] [0-9][A-Z][a-z][a-z]|[A-Z][+] [0-9] [A-Z][a-z][a-z]|[A-Z]- [0-9] [A-Z][a-z][a-z]|[A-Z] [0-9] [A-Z][a-z][a-z]", item)
+
+        #lab_check = re.findall("[A-Z][A-Z][A-Z]\s[0-9][0-9][0-9][L]\s", item)
+
+        completed_check = re.findall("[a-z][a-z][a-z]\s[0-9]", item)
+        inc_check = re.findall("[1-9][0-9] Credits|[1-9] Credits", item)
+        grades = list()
 
 
 
-        #print(len(temp_list))
+    #some issues remain with cases on the transcript that say "or"
+        if inc_check:
+            if len(line_check) > 1:
+                for i in range(len(line_check)):
+                    if "and" in line_check[i]:
+                        line_check[i] = line_check[i].replace("and", line_check[0][0:3])
+                        incomplete_list.append(line_check[i])
+                        if i == len(line_check)-1:
+                            incomplete_list.append(line_check[0])
 
-        #print(text)
+                    if "or" in line_check[i]:
+                        line_check[0] = line_check[0] + "-" + line_check[i][3:6]
+                        if i == len(line_check)-1:
+                            incomplete_list.append(line_check[0])
 
-        #text_list += temp_list
-        
+
+            else:
+                incomplete_list.append(line_check[0])
+
+            
+        elif line_check and grades_check:
+            #print(grades_check[0])
+            grade = grades_check[0][0] + grades_check[0][1]
+            grade = grade.replace(" ", "")
+            grades.append(grade)
+            #line_check.append(grade)
+            complete_list.append(line_check[0])
+
+    complete_list = set(complete_list)
+    incomplete_list = set(incomplete_list)
+    print("Incompleted courses:")
     print(*incomplete_list, sep="\n")
-    print("\n\n\n\n\n\n")
+    print("\n\n\n\n\n\n Completed courses:")
+    print(*complete_list, sep="\n")
 
-    print(*completed_list, sep="\n")
+
+    duplicates = complete_list.intersection(incomplete_list)
+
+    incomplete_list.difference_update(duplicates)
+
+    print("Incompleted courses:")
+    print(*duplicates, sep="\n")
 
 
-    for item in completed_list:
+    for courses in complete_list:
+        course = ClassStatus(user_id = session['user_id'], course_code = courses, completed = True)
+        db.session.add(course)
+        db.session.commit()
+        print()
+    
+    for courses in incomplete_list:
+        course = ClassStatus(user_id = session['user_id'], course_code = courses, completed = False)
+        db.session.add(course)
+        db.session.commit()
+        print()
 
-        line_check = re.findall(course_code_pattern_com, item) + re.findall("[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9][L]\s", item)
-        grades_check = re.findall("\s[a-zA-Z][+]\s[0-9]", item) + re.findall("\s[a-zA-Z]\s[0-9]", item) + re.findall("\s[a-zA-Z][-]\s[0-9]", item)
-        
-        print(line_check)
-        grade = ""
-        
-        if len(grades_check) > 0:
-            grade = str(grades_check[0])
-            print(grade[1] + grade[2])
-            #print(grades_check)
 
-    print("\n\n\n\n\n")
-
-    for item in incomplete_list:
-
-        line_check = re.findall(course_code_pattern_inc, item) + re.findall("[o-pO-P][r-sR-S]\s[0-9][0-9][0-9]\s", item) + re.findall("[a-zA-Z][a-zA-Z][a-zA-Z]\s[0-9][0-9][0-9][:][0-9][0-9][0-9]", item)
-        requirement_name = item.split("Still needed:")
-
-        course_code = str(line_check[0])
-        course_dept = course_code[0] + course_code[1] + course_code[2]
-        
-        print(*line_check, sep=", ")
-
-        print("Requirement name: ", requirement_name[0])
 
     os.remove(file_path)
 

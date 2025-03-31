@@ -38,6 +38,28 @@ class Course(db.Model):
 
     def __repr__(self):
         return f"<Course {self.course_code} - {self.course_name}>"
+    
+
+class ClassStatus(db.Model):
+    tablename = 'users_classlist'
+
+
+    #course_id = db.Column(db.Integer, autoincrement=True, unique=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    course_code = db.Column(db.String(30), nullable=False)
+    grade = db.Column(db.String(3), nullable=True)
+    completed = db.Column(db.Boolean)
+    credits = db.Column(db.Integer, nullable=True)
+
+
+
+    table_args = (
+    db.PrimaryKeyConstraint(user_id, course_code),
+
+
+    )
+    
+    
 
 class CourseRecommendation(db.Model):
     __tablename__ = 'course_recommendations'

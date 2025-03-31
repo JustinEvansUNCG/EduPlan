@@ -4,6 +4,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from configs import Config
 from flask_bcrypt import Bcrypt
+import os
 
 
 db = SQLAlchemy()
@@ -21,6 +22,13 @@ def create_app():
     bcrypt.init_app(app)
 
     UPLOADS = "./eduplan/static/transcripts"
+
+    #app.config.STATIC_DIRECTORY = "eduplan/static"
+
+
+    print("Current working directory:", os.getcwd())
+    print("Static folder exists:", os.path.isdir("eduplan/static"))
+    
     app.config['UPLOAD_FOLDER'] = UPLOADS
 
     from eduplan.models import User
