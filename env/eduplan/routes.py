@@ -369,8 +369,8 @@ def transcript_reader():
     print(*course_list, sep="\n")
 
 
-    incomplete_list = list()
-    complete_list = list()
+    incomplete_list = dict()
+    complete_list = dict()
 
 
     for item in course_list:
@@ -382,7 +382,7 @@ def transcript_reader():
 
         completed_check = re.findall("[a-z][a-z][a-z]\s[0-9]", item)
         inc_check = re.findall("[1-9][0-9] Credits|[1-9] Credits", item)
-        grades = list()
+        #grades = list()
 
 
 
@@ -392,55 +392,37 @@ def transcript_reader():
                 for i in range(len(line_check)):
                     if "and" in line_check[i]:
                         line_check[i] = line_check[i].replace("and", line_check[0][0:3])
-                        incomplete_list.append(line_check[i])
+                        incomplete_list[line_check[i]] = ""
                         if i == len(line_check)-1:
-                            incomplete_list.append(line_check[0])
+                            incomplete_list[line_check[0]] = ""
 
                     if "or" in line_check[i]:
                         line_check[0] = line_check[0] + "-" + line_check[i][3:6]
                         if i == len(line_check)-1:
-                            incomplete_list.append(line_check[0])
+                            incomplete_list[line_check[0]] = ""
 
 
             else:
-                incomplete_list.append(line_check[0])
+                incomplete_list[line_check[0]] = ""
 
             
         elif line_check and grades_check:
-            #print(grades_check[0])
             grade = grades_check[0][0] + grades_check[0][1]
             grade = grade.replace(" ", "")
-            grades.append(grade)
-            #line_check.append(grade)
-            complete_list.append(line_check[0])
+            complete_list[line_check[0]] = grade
+           
 
-    complete_list = set(complete_list)
-    incomplete_list = set(incomplete_list)
-    print("Incompleted courses:")
-    print(*incomplete_list, sep="\n")
-    print("\n\n\n\n\n\n Completed courses:")
-    print(*complete_list, sep="\n")
+    incomplete_list.update(complete_list)
 
-
-    duplicates = complete_list.intersection(incomplete_list)
-
-    incomplete_list.difference_update(duplicates)
-
-    print("Incompleted courses:")
-    print(*duplicates, sep="\n")
-
-
-    for courses in complete_list:
-        course = ClassStatus(user_id = session['user_id'], course_code = courses, completed = True)
-        db.session.add(course)
-        db.session.commit()
-        print()
+    courses = list(incomplete_list.keys())
+    grades = list(incomplete_list.values())
     
-    for courses in incomplete_list:
-        course = ClassStatus(user_id = session['user_id'], course_code = courses, completed = False)
+    for i in range(len(courses)):
+        
+        course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i], completed = False)
         db.session.add(course)
         db.session.commit()
-        print()
+        #print(courses[i], grades[i])
 
 
 
