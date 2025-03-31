@@ -1,0 +1,10 @@
+{% extends "Base.html" %}
+{% block content %}
+<form method="POST">
+  {{ form.hidden_tag() }}
+  <label for="token">Paste your Canvas token:</label>
+  {{ form.token(size=80) }}
+  {{ form.submit() }}
+</form>
+
+{% endblock %}

@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session, current_app
 from eduplan import bcrypt
 
-from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, TranscriptForm, CourseCatalogUploadForm, EditCourseForm
+from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, TranscriptForm, CourseCatalogUploadForm, EditCourseForm, CanvasTokenForm
 
 from eduplan import db
 from eduplan.models import study_time, study_event, User, CourseContentAssistance, ClassStatus
@@ -22,6 +22,10 @@ from werkzeug.utils import secure_filename
 from configs import Config
 import os
 import requests
+from datetime import datetime, timezone
+
+
+
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 key_path = os.path.join(BASE_DIR, 'api_keys.json')
@@ -55,6 +59,7 @@ def admin_required(f):
 @main_blueprint.route('/')
 def home():
     return render_template('home.html')
+   
 
 
 
@@ -182,6 +187,8 @@ def add_study_event():
     #return render_template("study_planner.html", form=form, add_form=add_form)
 
 
+from flask_login import login_user
+
 @main_blueprint.route("/sign_up", methods=["GET", "POST"])
 def sign_up():
     form = RegisterForm()
@@ -195,13 +202,17 @@ def sign_up():
         )
         db.session.add(user)
         db.session.commit()
-        flash('Your account has been created', 'success')  # Success message
-        return redirect(url_for('main.login'))
-    # Form is not valid, flash the errors
+
+        login_user(user)  # ✅ Keep user logged in after sign-up
+        flash('Your account has been created and you are now logged in.', 'success')
+        return redirect(url_for('main.home'))
+
+    # Show form errors
     for field, errors in form.errors.items():
         for error in errors:
-            flash(error, 'danger')  # Error messages
+            flash(error, 'danger')
     return render_template("signup.html", form=form)
+
 
 @main_blueprint.route("/login", methods=["GET", "POST"])
 def login():
@@ -210,7 +221,7 @@ def login():
         user = User.query.filter_by(email=form.email.data).first()
         if user and bcrypt.check_password_hash(user.password_hash, form.password.data):
             login_user(user)  # Use Flask-Login's login_user()
-            session['user_id'] = user.id
+            login_user(user)
 
             # Use next parameter for redirection
             next_page = request.args.get('next')
@@ -450,9 +461,32 @@ def transcript_reader():
     return redirect(url_for('main.home'))
 
 
-@main_blueprint.route("/profile", methods=["GET", "POST"])
+@main_blueprint.route('/profile', methods=['GET', 'POST'])
+@login_required
 def profile():
-    return render_template("profile.html")
+    form = CanvasTokenForm()
+    message = None
+
+    if form.validate_on_submit():
+        token = form.token.data
+        headers = {"Authorization": f"Bearer {token}"}
+        test_resp = requests.get("https://uncg.instructure.com/api/v1/users/self/profile", headers=headers)
+
+        if test_resp.status_code == 200:
+            current_user.canvas_token = token
+            current_user.canvas_user_id = test_resp.json().get("id")
+            db.session.commit()
+            flash("Canvas token updated successfully!", "success")
+            return redirect(url_for('main.profile'))
+        else:
+            flash("Invalid token. Please try again.", "danger")
+
+    # Pre-fill form with existing token if it exists (optional)
+    if current_user.canvas_token:
+        message = "You already have a Canvas token on file. You may enter a new one if it was regenerated."
+
+    return render_template("profile.html", form=form, message=message, user=current_user)
+
 
 
 @main_blueprint.route('/api/event_times')
@@ -869,3 +903,117 @@ def add_course():
         return redirect(url_for('main.list_courses'))
 
     return render_template('add_course.html', form=form)
+
+#canvas routes
+@main_blueprint.route('/connect-canvas', methods=['GET', 'POST'])
+@login_required
+def connect_canvas():
+    form = CanvasTokenForm()
+    if form.validate_on_submit():
+        token = form.token.data
+        headers = {"Authorization": f"Bearer {token}"}
+        test_resp = requests.get("https://uncg.instructure.com/api/v1/users/self/profile", headers=headers)
+
+        if test_resp.status_code == 200:
+            current_user.canvas_token = token
+            current_user.canvas_user_id = test_resp.json().get("id")
+            db.session.commit()
+            flash("Canvas account connected successfully!", "success")
+            return redirect(url_for('main.canvas_assignments'))
+        else:
+            flash("Invalid token. Please double-check and try again.", "danger")
+
+    return render_template('connect_canvas.html', form=form)
+
+@main_blueprint.route('/regenerate-canvas-token', methods=['GET', 'POST'])
+@login_required
+def regenerate_canvas_token():
+    form = CanvasTokenForm()
+    if form.validate_on_submit():
+        token = form.token.data
+        headers = {"Authorization": f"Bearer {token}"}
+        test_resp = requests.get("https://uncg.instructure.com/api/v1/users/self/profile", headers=headers)
+
+        if test_resp.status_code == 200:
+            current_user.canvas_token = token
+            db.session.commit()
+            flash("Canvas token updated successfully!", "success")
+            return redirect(url_for('main.canvas_assignments'))
+        else:
+            flash("The new token is invalid. Please try again.", "danger")
+
+    return render_template('regenerate_canvas_token.html', form=form)
+
+@main_blueprint.route('/canvas/assignments')
+@login_required
+def canvas_assignments():
+    token = current_user.canvas_token
+    if not token:
+        flash("You need to connect your Canvas account first.", "warning")
+        return redirect(url_for('main.connect_canvas'))
+
+    headers = {"Authorization": f"Bearer {token}"}
+    params = {"enrollment_state": "active"}  # Only include current enrollments
+    courses_resp = requests.get("https://uncg.instructure.com/api/v1/courses", headers=headers, params=params)
+
+    if courses_resp.status_code != 200:
+        flash("There was an issue accessing your Canvas courses.", "danger")
+        return redirect(url_for('main.connect_canvas'))
+
+    courses = courses_resp.json()
+
+    # Filter and store recent courses
+    recent_courses = []
+    for course in courses:
+        start_at = course.get('start_at')
+        if start_at:
+            try:
+                start_date = datetime.fromisoformat(start_at.replace('Z', ''))
+                if start_date.year >= 2025:
+                    recent_courses.append(course)
+            except ValueError:
+                recent_courses.append(course)
+        else:
+            recent_courses.append(course)
+
+    all_assignments = []
+    for course in recent_courses:
+        cid = course.get("id")
+        assignments_resp = requests.get(
+            f"https://uncg.instructure.com/api/v1/courses/{cid}/assignments",
+            headers=headers
+        )
+        if assignments_resp.ok:
+            assignments = assignments_resp.json()
+            for assignment in assignments:
+                assignment['course_name'] = course.get('name')
+            all_assignments.extend(assignments)
+
+    now = datetime.now(timezone.utc)
+    upcoming = []
+    past_due = []
+
+    for assignment in all_assignments:
+        due_str = assignment.get('due_at')
+        if due_str:
+            try:
+                due_date = datetime.fromisoformat(due_str.replace('Z', '+00:00'))
+                if due_date >= now:
+                    upcoming.append(assignment)
+                else:
+                    past_due.append(assignment)
+            except ValueError:
+                upcoming.append(assignment)  # fallback if date parsing fails
+        else:
+            upcoming.append(assignment)
+
+    # Sort each group
+    upcoming.sort(key=lambda a: a.get('due_at') or '')
+    past_due.sort(key=lambda a: a.get('due_at') or '')
+
+    return render_template(
+        'canvas_assignments.html',
+        upcoming_assignments=upcoming,
+        past_due_assignments=past_due,
+        courses=recent_courses
+    )

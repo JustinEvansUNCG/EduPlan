@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Upcoming Assignments</h2>
+    <ul>
+      {% for assignment in upcoming_assignments %}
+        <li>{{ assignment.name }} ({{ assignment.due_at or "No due date" }}) - {{ assignment.course_name }}</li>
+      {% endfor %}
+    </ul>
+    
+    <h2>Past Due Assignments</h2>
+    <ul>
+      {% for assignment in past_due_assignments %}
+        <li>{{ assignment.name }} ({{ assignment.due_at or "No due date" }}) - {{ assignment.course_name }}</li>
+      {% endfor %}
+    </ul>    
+
+</div>
+{% endblock %}
