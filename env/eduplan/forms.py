@@ -90,4 +90,8 @@ class CourseCatalogUploadForm(FlaskForm):
     catalog_file = FileField("Upload Course Catalog (PDF)")
     submit = SubmitField("Upload")
 
+class CanvasTokenForm(FlaskForm):
+    token = StringField('Canvas Access Token', validators=[DataRequired()])
+    submit = SubmitField('Save Token')
+
 
