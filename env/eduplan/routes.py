@@ -222,6 +222,7 @@ def login():
         if user and bcrypt.check_password_hash(user.password_hash, form.password.data):
             login_user(user)  # Use Flask-Login's login_user()
             login_user(user)
+            session["user_id"] = user.id
 
             # Use next parameter for redirection
             next_page = request.args.get('next')
@@ -366,8 +367,9 @@ def transcript_reader():
         temp_list = text.split("\n")
         print(text)
 
-        course_code_pattern = "[A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]L|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]|and [0-9][0-9][0-9]L|or [0-9][0-9][0-9]L|and [0-9][0-9][0-9]|or [0-9][0-9][0-9]"
+        course_code_pattern = "and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]L|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]|and [0-9][0-9][0-9]L|or [0-9][0-9][0-9]L|and [0-9][0-9][0-9]|or [0-9][0-9][0-9]"
 
+        #"and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]"
         
 
         for item in temp_list:
@@ -377,7 +379,7 @@ def transcript_reader():
 
                 course_list.append(item)
 
-    print(*course_list, sep="\n")
+    #print(*course_list, sep="\n")
 
 
     incomplete_list = dict()
@@ -396,44 +398,68 @@ def transcript_reader():
         #grades = list()
 
 
+        #print(line_check)
 
     #some issues remain with cases on the transcript that say "or"
         if inc_check:
+            credits = inc_check[0][0] + inc_check[0][1]
+            credits = credits.replace(" ", "")
+
             if len(line_check) > 1:
                 for i in range(len(line_check)):
                     if "and" in line_check[i]:
-                        line_check[i] = line_check[i].replace("and", line_check[0][0:3])
-                        incomplete_list[line_check[i]] = ""
+                        if len(line_check[i]) < 9:
+                            line_check[i] = line_check[i].replace("and", line_check[0][0:3])
+                        else:
+                            line_check[i] = line_check[i].replace("and ", "")
+                        incomplete_list[line_check[i]] = ["", int(credits) / len(line_check)]
+                        #incomplete_list[line_check[i]][1] = credits
+
                         if i == len(line_check)-1:
-                            incomplete_list[line_check[0]] = ""
+                            incomplete_list[line_check[0]] = ["", int(credits) / len(line_check)]
+                            #incomplete_list[line_check[i]][1] = credits
 
                     if "or" in line_check[i]:
-                        line_check[0] = line_check[0] + "-" + line_check[i][3:6]
+                        if len(line_check[i]) < 8:
+                            line_check[0] = line_check[0] + "-" + line_check[i][3:6]
+                        else:
+                            line_check[i] = line_check[i].replace("or ", "")
+                            line_check[0] = line_check[0] + "-" + line_check[i]
+
                         if i == len(line_check)-1:
-                            incomplete_list[line_check[0]] = ""
+                            incomplete_list[line_check[0]] = ["", credits]
+                            #incomplete_list[line_check[0]][1] = credits
+
 
 
             else:
-                incomplete_list[line_check[0]] = ""
+                incomplete_list[line_check[0]] = ["", credits]
+                #incomplete_list[line_check[0]][1] = credits
 
             
         elif line_check and grades_check:
             grade = grades_check[0][0] + grades_check[0][1]
             grade = grade.replace(" ", "")
-            complete_list[line_check[0]] = grade
+            complete_list[line_check[0]] = [grade, ""]
+            #complete_list[line_check[0]][1] = ""
+
+    #print(*incomplete_list.keys(), sep="\n")
            
 
     incomplete_list.update(complete_list)
 
+
     courses = list(incomplete_list.keys())
     grades = list(incomplete_list.values())
+
+    #print(*courses, *grades, sep="\n")
     
     for i in range(len(courses)):
         
-        if grades[i] is not "":
-            course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i], completed = True)
+        if grades[i][0] != "":
+            course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i][0], completed = True)
         else:
-            course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i], completed = False)
+            course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i][0], credits=grades[i][1], completed = False)
         db.session.add(course)
         db.session.commit()
         #print(courses[i], grades[i])
