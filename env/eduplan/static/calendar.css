@@ -213,6 +213,19 @@ tr {
   justify-content: space-between;
   border-radius: 10px;
   margin-left: 5%;
+  align-items: center;
+  width: 95%;
+  background-color: #7e94aa;
+  position: absolute;
+  
+}
+
+
+.flex-assignment {
+  display: block;
+  justify-content: space-between;
+  border-radius: 10px;
+  margin: 5%;
   
   
   align-items: center;
@@ -223,7 +236,7 @@ tr {
   background-color: #7e94aa;
 
 
-  position: absolute;
+
   
 }
 
@@ -252,6 +265,17 @@ tr {
   width: 80%; /* Could be more or less, depending on screen size */
 }
 
+/* Modal Content/Box */
+.modal-content-flex {
+  background-color: #fefefe;
+  margin: 15% auto; /* 15% from the top and centered */
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%; /* Could be more or less, depending on screen size */
+  display: flex;
+  flex-direction: column;
+}
+
 /* The Close Button */
 .close {
   color: #aaa;
@@ -270,4 +294,10 @@ tr {
 
 #new-event-info {
   display: none;
+}
+
+
+
+h2 {
+  color: black;
 }
