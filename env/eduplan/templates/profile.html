@@ -3,8 +3,8 @@
 {% block head %}
 {{ super() }}
 <link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
-{% endblock %}
 
+{% endblock %}
 {% block content %}
 <div class="container mt-4">
     <h2>Your Profile</h2>
@@ -13,10 +13,10 @@
 
     <hr>
     <h4>Upload Transcript</h4>
-    <div class="profile-page">
-        <section class="auth-box transcript-instructions">
-            <h2>How to Download Your Unofficial Transcript (Student View)</h2>
 
+    <div class="flex-pair">
+        <div class="auth-box transcript-instructions">
+            <h2>How to Download Your Unofficial Transcript (Student View)</h2>
             <ol>
                 <li>Log in to DegreeWorks.</li>
                 <li>Make sure you are on the <strong>“Worksheets”</strong> tab.</li>
@@ -25,23 +25,26 @@
                 <li>Set the printer destination to <strong>“Save as PDF.”</strong></li>
                 <li>Click <strong>Save</strong> to download your unofficial transcript.</li>
             </ol>
+            <p><strong>Note:</strong> If you're a double major, you may need to download transcripts for each major individually.</p>
+        </div>
+        <section>
 
-            <p><strong>Note:</strong> If you're a double major, you may need to download transcripts for each major individually, as they could be listed separately by department.</p>
-        </section>
-
-        <form method="POST" action="{{ url_for('main.transcript_reader') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ url_for('main.transcript_reader') }}" enctype="multipart/form-data" class="upload-box">
             <input type="file" name="transcript" class="form-control mb-2" required>
             <button type="submit" class="btn btn-secondary">Upload</button>
         </form>
+        </section>
+    </div>
 
-        <hr>
-        <h4>Canvas Access Token</h4>
+    <hr>
+    <h4>Canvas Access Token</h4>
 
-        {% if message %}
-        <div class="success-message">{{ message }}</div>
-        {% endif %}
+    {% if message %}
+    <div class="success-message">{{ message }}</div>
+    {% endif %}
 
-        <section class="auth-box transcript-instructions">
+    <div class="flex-pair">
+        <div class="auth-box transcript-instructions">
             <h2>🔑 How to Generate a Canvas Token</h2>
             <ol>
                 <li>🔗 Go to <a href="https://uncg.instructure.com" target="_blank">uncg.instructure.com</a> and log in</li>
@@ -57,14 +60,16 @@
                 <li>📋 Click <strong>Generate Token</strong></li>
                 <li>📥 Paste the token below</li>
             </ol>
-        </section>
+        </div>
+<section>
+        <form method="POST" class="upload-box">
+            {{ form.hidden_tag() }}
+            <label for="token">{{ form.token.label }}</label><br>
+            {{ form.token(class="form-control") }}<br><br>
+            {{ form.submit(class="btn-primary") }}
+        </form>
     </div>
-
-    <form method="POST">
-        {{ form.hidden_tag() }}
-        <label for="token">{{ form.token.label }}</label><br>
-        {{ form.token(class="form-control") }}<br><br>
-        {{ form.submit(class="btn-primary") }}
-    </form>
 </div>
-{% endblock %}
+</section>
+
+{%endblock%}

@@ -21,10 +21,27 @@
     margin: 30px 0 30px 40px;  /* <-- Pushes it left */
     text-align: left;
   }
-  section {
-    text-align: left;
-    margin-left: 40px;
-    margin-right: auto;
+
+  .instructions-wrapper {
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
   
+  .flex-pair {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    align-items: flex-start;
+    margin: 30px 0 30px 0;
+  }
+  
+  .upload-box {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+  }
   

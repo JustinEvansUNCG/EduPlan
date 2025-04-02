@@ -23,6 +23,7 @@ from configs import Config
 import os
 import requests
 from datetime import datetime, timezone, timedelta
+from cryptography.fernet import Fernet
 
 
 
@@ -932,6 +933,11 @@ def connect_canvas():
         test_resp = requests.get("https://uncg.instructure.com/api/v1/users/self/profile", headers=headers)
 
         if test_resp.status_code == 200:
+
+            #encrptyion
+            fernet = Fernet(current_app.config["FERNET_KEY"])
+            encrypted_token = fernet.encrypt(token.encode()).decode()
+
             current_user.canvas_token = token
             current_user.canvas_user_id = test_resp.json().get("id")
             db.session.commit()
@@ -968,6 +974,14 @@ def canvas_assignments():
     if not token:
         flash("You need to connect your Canvas account first.", "warning")
         return redirect(url_for('main.connect_canvas'))
+
+   # fernet = Fernet(current_app.config["FERNET_KEY"])
+    #try:
+     #   decrypted_token = fernet.decrypt(current_user.canvas_token.encode()).decode()
+    #except Exception as e:
+     #   flash("Error decrypting token. Please reconnect Canvas.", "danger")
+     #   return redirect(url_for('main.connect_canvas'))
+
 
     headers = {"Authorization": f"Bearer {token}"}
     params = {"enrollment_state": "active"}  # Only include current enrollments
