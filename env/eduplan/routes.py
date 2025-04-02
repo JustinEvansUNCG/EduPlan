@@ -847,10 +847,6 @@ def get_courses():
 
 
 
-
-
-
-
 @main_blueprint.route("/course_list")
 @admin_required
 def list_courses():
@@ -885,7 +881,10 @@ def edit_course(course_id):
         flash('Course updated successfully!', 'success')
         return redirect(url_for('main.list_courses'))
 
-    return render_template('edit_course.html', form=form, course=course)
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return render_template("edit_course_modal.html", form=form, course=course)
+
+    return redirect(url_for('main.list_courses'))
 
 
 @main_blueprint.route('/course/<int:course_id>/delete', methods=['POST'])
@@ -917,7 +916,10 @@ def add_course():
         flash('New course added!', 'success')
         return redirect(url_for('main.list_courses'))
 
-    return render_template('add_course.html', form=form)
+    if request.headers.get("X-Requested-With") =="XMLHttpRequest":
+        return render_template("add_course_modal.html", form=form)
+
+    return redirect('main.list_courses')
 
 #canvas routes
 @main_blueprint.route('/connect-canvas', methods=['GET', 'POST'])

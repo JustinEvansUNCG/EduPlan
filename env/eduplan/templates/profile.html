@@ -1,4 +1,10 @@
 {% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <h2>Your Profile</h2>
@@ -7,34 +13,51 @@
 
     <hr>
     <h4>Upload Transcript</h4>
-    <form method="POST" action="{{ url_for('main.transcript_reader') }}" enctype="multipart/form-data">
-        <input type="file" name="transcript" class="form-control mb-2" required>
-        <button type="submit" class="btn btn-secondary">Upload</button>
-    </form>
+    <div class="profile-page">
+        <section class="auth-box transcript-instructions">
+            <h2>How to Download Your Unofficial Transcript (Student View)</h2>
 
-    <hr>
-    <h4>Canvas Access Token</h4>
+            <ol>
+                <li>Log in to DegreeWorks.</li>
+                <li>Make sure you are on the <strong>“Worksheets”</strong> tab.</li>
+                <li>Click the print icon <strong>“Create PDF”</strong> to view your transcript.</li>
+                <li>Once the PDF opens in a new tab or window, open the browser’s <strong>Print</strong> menu (<kbd>Ctrl+P</kbd> or <kbd>Cmd+P</kbd>).</li>
+                <li>Set the printer destination to <strong>“Save as PDF.”</strong></li>
+                <li>Click <strong>Save</strong> to download your unofficial transcript.</li>
+            </ol>
 
-    {% if message %}
-    <div class="success-message">{{ message }}</div>
-    {% endif %}
+            <p><strong>Note:</strong> If you're a double major, you may need to download transcripts for each major individually, as they could be listed separately by department.</p>
+        </section>
 
-    <div class="token-instructions">
-        <h5>🔑 How to Generate a Canvas Token</h5>
-        <ol>
-            <li>🔗 Go to <a href="https://uncg.instructure.com" target="_blank">uncg.instructure.com</a> and log in</li>
-            <li>👤 Click <strong>Account</strong> → <strong>Settings</strong></li>
-            <li>⚙️ Scroll to <strong>Approved Integrations</strong></li>
-            <li>➕ Click <strong>+ New Access Token</strong></li>
-            <li>✏️ Fill in:
-                <ul>
-                    <li><strong>Purpose:</strong> <code>EduPlan Integration</code></li>
-                    <li><strong>Expiration Date:</strong> last day of class (e.g. <code>2025-05-02</code>)</li>
-                </ul>
-            </li>
-            <li>📋 Click <strong>Generate Token</strong></li>
-            <li>📥 Paste the token below</li>
-        </ol>
+        <form method="POST" action="{{ url_for('main.transcript_reader') }}" enctype="multipart/form-data">
+            <input type="file" name="transcript" class="form-control mb-2" required>
+            <button type="submit" class="btn btn-secondary">Upload</button>
+        </form>
+
+        <hr>
+        <h4>Canvas Access Token</h4>
+
+        {% if message %}
+        <div class="success-message">{{ message }}</div>
+        {% endif %}
+
+        <section class="auth-box transcript-instructions">
+            <h2>🔑 How to Generate a Canvas Token</h2>
+            <ol>
+                <li>🔗 Go to <a href="https://uncg.instructure.com" target="_blank">uncg.instructure.com</a> and log in</li>
+                <li>👤 Click <strong>Account</strong> → <strong>Settings</strong></li>
+                <li>⚙️ Scroll to <strong>Approved Integrations</strong></li>
+                <li>➕ Click <strong>+ New Access Token</strong></li>
+                <li>✏️ Fill in:
+                    <ul>
+                        <li><strong>Purpose:</strong> <code>EduPlan Integration</code></li>
+                        <li><strong>Expiration Date:</strong> last day of class (e.g. <code>2025-05-02</code>)</li>
+                    </ul>
+                </li>
+                <li>📋 Click <strong>Generate Token</strong></li>
+                <li>📥 Paste the token below</li>
+            </ol>
+        </section>
     </div>
 
     <form method="POST">
@@ -43,4 +66,5 @@
         {{ form.token(class="form-control") }}<br><br>
         {{ form.submit(class="btn-primary") }}
     </form>
-    {%endblock%}
+</div>
+{% endblock %}
