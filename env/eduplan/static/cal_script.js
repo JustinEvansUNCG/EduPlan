@@ -4,10 +4,37 @@
 let event_data;
 let event_json;
 
+let assignment_data;
+let assignment_json;
+
 let events;
 let user_events_json;
 
 //the fetch below gets the data from study_event and study_time and puts it into json format
+
+
+async function getAssignments() {
+    console.log("test");
+    await fetch('/canvas/assignments')
+        .then(response => response.json())
+        .then(data => {
+            // Use the data in your JavaScript code
+            assignment_data = "[" + String(data) + "]";
+            assignment_data = assignment_data.replaceAll("'", '"');
+            assignment_json = JSON.parse(assignment_data);
+
+            console.log(assignment_data);
+
+
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+
+}
+getAssignments();
+
+
 
 async function getEvents() {
     console.log("test");
@@ -134,6 +161,21 @@ const manipulate = () => {
 
         // Loop to add the dates of the current month
         for (let i = 1; i <= lastdate; i++) {
+            console.log(year + "-" + month + "-" + i);
+            let temp = year + "-";
+            if (month+1 < 10) {
+                temp += "0" + (month+1) + "-";
+            }
+            else {
+                temp += (month+1) + "-";
+            }
+
+            if (i < 10) {
+                temp += "0" + i;
+            }
+            else {
+                temp += i;
+            }
 
             // Check if the current date is today
             let isToday = i === date.getDate()
@@ -141,7 +183,7 @@ const manipulate = () => {
                 && year === new Date().getFullYear()
                 ? "active"
                 : "";
-            lit += `<li class="${isToday}">${i}</li>`;
+            lit += `<li class="${temp} ${isToday}">${i}</li>`;
         }
 
         // Loop to add the first dates of the next month
@@ -156,6 +198,9 @@ const manipulate = () => {
         // update the HTML of the dates element 
         // with the generated calendar
         day.innerHTML = lit;
+
+
+
     } else {
         document.querySelector(".calendar-dates").innerHTML = "";
         let plan_id = [];
@@ -251,7 +296,7 @@ const manipulate = () => {
                 }
 
 
-                lit += `<li class="${isToday}">${i}</li>`;
+                lit += `<li class="${temp} ${isToday}">${i}</li>`;
 
 
 
@@ -330,7 +375,7 @@ const manipulate = () => {
                 }
 
 
-                lit += `<li class="${isToday}">${i}</li>`;
+                lit += `<li class="${temp} ${isToday}">${i}</li>`;
 
 
             }
@@ -390,7 +435,7 @@ const manipulate = () => {
             }
 
 
-            lit += `<li class="${isToday}">${i}</li>`;
+            lit += `<li class="${temp} ${isToday}">${i}</li>`;
 
 
 
@@ -527,6 +572,13 @@ const manipulate = () => {
 
                     const form_info = new FormData(add_form);
 
+                    let day_date = document.querySelectorAll("li");
+                    //day_date = day_date[i].classList[0];
+                    console.log(day_date[0].classList);
+                    console.log(add_form.date.data);
+
+                    //add_form.date.data = day_date.replace("-", "/");
+
                     const response = await fetch('/study_planner/add', {
                         method: 'POST',
                         body: form_info,
@@ -563,6 +615,47 @@ const manipulate = () => {
 
 
 
+    }
+
+    all_days = document.querySelectorAll("li");
+    for (let i = 0; i < all_days.length; i++) {
+        all_days[i].addEventListener("click", () => {
+            var modal = document.getElementById("modal-day-view");
+            var modal_content = modal.querySelector(".modal-content-flex");
+
+            while(modal_content.querySelector(".flex-assignment")) {
+                modal_content.querySelector(".flex-assignment").remove();
+            }
+
+            let day_date = all_days[i].classList[0];
+            for (let j = 0; j < Object.keys(assignment_json).length; j++) {
+                
+                let temp_date = assignment_json[j]["due_at"].substring(0, 10);
+                if (temp_date === day_date) {
+                    //lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
+                    //const day_object = document.getElementById(days[the_date]);
+                    
+                    let assignment_object = document.createElement("div");
+                    assignment_object.classList.add("flex-assignment");
+                    assignment_object.innerHTML = `${assignment_json[j]["name"]}-${assignment_json[j]["course_name"]}  <br> ${assignment_json[j]["due_at"]}`;
+                    modal_content.appendChild(assignment_object);
+                    //plan_id.push(event_json[j]["plan_id"])
+
+                }
+
+            }
+            
+            modal.querySelector("h2").innerHTML = all_days[i].classList;
+            modal.style.display = "block";
+
+
+            var close = modal.querySelector(".close");
+            close.addEventListener("click", close_event);
+
+
+
+        })
+        
     }
 }
 
@@ -724,6 +817,7 @@ function close_event(event) {
     var modal = document.querySelectorAll(".modal");
     modal[0].style.display = "none";
     modal[1].style.display = "none";
+    modal[2].style.display = "none";
 }
 
 
