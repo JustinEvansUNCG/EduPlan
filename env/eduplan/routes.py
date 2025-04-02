@@ -22,7 +22,8 @@ from werkzeug.utils import secure_filename
 from configs import Config
 import os
 import requests
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+
 
 
 
@@ -446,9 +447,11 @@ def transcript_reader():
     #print(*incomplete_list.keys(), sep="\n")
            
 
+    #combines classes needed with classes completed
     incomplete_list.update(complete_list)
 
 
+    #breaks up dictionary, leaving us with the course codes in courses, and grade and credits in grades
     courses = list(incomplete_list.keys())
     grades = list(incomplete_list.values())
 
@@ -456,6 +459,7 @@ def transcript_reader():
     
     for i in range(len(courses)):
         
+        #checks if grade is empty or not
         if grades[i][0] != "":
             course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i][0], completed = True)
         else:
@@ -973,6 +977,7 @@ def canvas_assignments():
 
     courses = courses_resp.json()
 
+
     # Filter and store recent courses
     recent_courses = []
     for course in courses:
@@ -1006,6 +1011,7 @@ def canvas_assignments():
 
     for assignment in all_assignments:
         due_str = assignment.get('due_at')
+        print(due_str)
         if due_str:
             try:
                 due_date = datetime.fromisoformat(due_str.replace('Z', '+00:00'))
@@ -1015,16 +1021,28 @@ def canvas_assignments():
                     past_due.append(assignment)
             except ValueError:
                 upcoming.append(assignment)  # fallback if date parsing fails
+                #print()
         else:
-            upcoming.append(assignment)
+            print("foo")
+            #upcoming.append(assignment)
 
     # Sort each group
     upcoming.sort(key=lambda a: a.get('due_at') or '')
     past_due.sort(key=lambda a: a.get('due_at') or '')
 
-    return render_template(
-        'canvas_assignments.html',
-        upcoming_assignments=upcoming,
-        past_due_assignments=past_due,
-        courses=recent_courses
-    )
+    #return render_template(
+    #    'canvas_assignments.html',
+    #    upcoming_assignments=upcoming,
+    #    past_due_assignments=past_due,
+    #    courses=recent_courses
+    #)
+    assignment_list = []
+    for assignmentss in upcoming:
+        due_date = datetime.fromisoformat(assignmentss["due_at"]) - timedelta(hours=4)
+        assignment_list.append(str({"name": assignmentss["name"], "due_at": str(due_date), "course_name": assignmentss["course_name"]}))
+        #return jsonify(event_list)
+    #print(upcoming["name"])
+
+    return jsonify(assignment_list)
+
+
