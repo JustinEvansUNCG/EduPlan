@@ -154,3 +154,13 @@ body {
   font-style: italic;
   margin: 10px 0;
 }
+
+.features-section,
+.how-it-works {
+  flex: 1 1 45%;
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  max-width: 500px;
+}

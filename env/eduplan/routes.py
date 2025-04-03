@@ -23,6 +23,8 @@ from configs import Config
 import os
 import requests
 from datetime import datetime, timezone, timedelta
+from cryptography.fernet import Fernet
+from math import ceil
 
 
 
@@ -874,24 +876,34 @@ def get_courses():
 
 
 
-
-
-
-
 @main_blueprint.route("/course_list")
 @admin_required
 def list_courses():
     search_query = request.args.get("search", "").strip()
+    page = request.args.get("page", 1, type=int)
+    per_page = 50
+
+    query = Course.query
 
     if search_query:
-        courses = Course.query.filter(
+        query = query.filter(
             Course.course_name.ilike(f"%{search_query}%") |
             Course.course_code.ilike(f"%{search_query}%")
-        ).order_by(Course.course_code.asc()).all()
-    else:
-        courses = Course.query.order_by(Course.course_code.asc()).all()
+        )
 
-    return render_template("course_list.html", courses=courses)
+    query = query.order_by(Course.course_code.asc())
+    total = query.count()
+    courses = query.offset((page - 1) * per_page).limit(per_page).all()
+
+    total_pages = ceil(total / per_page)
+
+    return render_template(
+        "course_list.html",
+        courses=courses,
+        page=page,
+        total_pages=total_pages,
+        search_query=search_query
+    )
 
 
 @main_blueprint.route('/course/<int:course_id>/edit', methods=['GET', 'POST'])
@@ -912,7 +924,10 @@ def edit_course(course_id):
         flash('Course updated successfully!', 'success')
         return redirect(url_for('main.list_courses'))
 
-    return render_template('edit_course.html', form=form, course=course)
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return render_template("edit_course_modal.html", form=form, course=course)
+
+    return redirect(url_for('main.list_courses'))
 
 
 @main_blueprint.route('/course/<int:course_id>/delete', methods=['POST'])
@@ -944,7 +959,10 @@ def add_course():
         flash('New course added!', 'success')
         return redirect(url_for('main.list_courses'))
 
-    return render_template('add_course.html', form=form)
+    if request.headers.get("X-Requested-With") =="XMLHttpRequest":
+        return render_template("add_course_modal.html", form=form)
+
+    return redirect('main.list_courses')
 
 #canvas routes
 @main_blueprint.route('/connect-canvas', methods=['GET', 'POST'])
@@ -957,6 +975,11 @@ def connect_canvas():
         test_resp = requests.get("https://uncg.instructure.com/api/v1/users/self/profile", headers=headers)
 
         if test_resp.status_code == 200:
+
+            #encrptyion
+            fernet = Fernet(current_app.config["FERNET_KEY"])
+            encrypted_token = fernet.encrypt(token.encode()).decode()
+
             current_user.canvas_token = token
             current_user.canvas_user_id = test_resp.json().get("id")
             db.session.commit()
@@ -993,6 +1016,14 @@ def canvas_assignments():
     if not token:
         flash("You need to connect your Canvas account first.", "warning")
         return redirect(url_for('main.connect_canvas'))
+
+   # fernet = Fernet(current_app.config["FERNET_KEY"])
+    #try:
+     #   decrypted_token = fernet.decrypt(current_user.canvas_token.encode()).decode()
+    #except Exception as e:
+     #   flash("Error decrypting token. Please reconnect Canvas.", "danger")
+     #   return redirect(url_for('main.connect_canvas'))
+
 
     headers = {"Authorization": f"Bearer {token}"}
     params = {"enrollment_state": "active"}  # Only include current enrollments
