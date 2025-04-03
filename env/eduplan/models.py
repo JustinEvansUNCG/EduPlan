@@ -92,15 +92,14 @@ class CourseResource(db.Model):
     __tablename__ = 'course_resources'
 
     id = db.Column(db.Integer, primary_key=True)
-    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
-    resource_type = db.Column(db.Enum('book', 'video', 'website', 'pdf', name='resource_types'), nullable=False)
-    resource_title = db.Column(db.String(255), nullable=False)
-    resource_link = db.Column(db.Text, nullable=False)
-    recommended_by_ai = db.Column(db.Boolean, default=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=True)
+    question = db.Column(db.Text, nullable=False)
+    ai_response = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
-        return f"<CourseResource {self.resource_title}>"
+        return f"<CourseResourceAssistance User:{self.user_id} Question:{self.question[:50]}>"
 
 class StudyPreference(db.Model):
     __tablename__ = 'study_preferences'
