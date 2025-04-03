@@ -45,6 +45,17 @@
         {% endfor %}
     </tbody>
 </table>
+<div class="pagination">
+  {% if page > 1 %}
+      <a href="{{ url_for('main.list_courses', page=page-1, search=search_query) }}">&laquo; Prev</a>
+  {% endif %}
+
+  <span>Page {{ page }} of {{ total_pages }}</span>
+
+  {% if page < total_pages %}
+      <a href="{{ url_for('main.list_courses', page=page+1, search=search_query) }}">Next &raquo;</a>
+  {% endif %}
+</div>
 
 <!-- Modal Structure -->
 <div id="courseModal" class="modal">

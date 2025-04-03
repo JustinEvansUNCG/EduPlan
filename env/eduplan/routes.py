@@ -24,6 +24,7 @@ import os
 import requests
 from datetime import datetime, timezone, timedelta
 from cryptography.fernet import Fernet
+from math import ceil
 
 
 
@@ -879,16 +880,30 @@ def get_courses():
 @admin_required
 def list_courses():
     search_query = request.args.get("search", "").strip()
+    page = request.args.get("page", 1, type=int)
+    per_page = 50
+
+    query = Course.query
 
     if search_query:
-        courses = Course.query.filter(
+        query = query.filter(
             Course.course_name.ilike(f"%{search_query}%") |
             Course.course_code.ilike(f"%{search_query}%")
-        ).order_by(Course.course_code.asc()).all()
-    else:
-        courses = Course.query.order_by(Course.course_code.asc()).all()
+        )
 
-    return render_template("course_list.html", courses=courses)
+    query = query.order_by(Course.course_code.asc())
+    total = query.count()
+    courses = query.offset((page - 1) * per_page).limit(per_page).all()
+
+    total_pages = ceil(total / per_page)
+
+    return render_template(
+        "course_list.html",
+        courses=courses,
+        page=page,
+        total_pages=total_pages,
+        search_query=search_query
+    )
 
 
 @main_blueprint.route('/course/<int:course_id>/edit', methods=['GET', 'POST'])
