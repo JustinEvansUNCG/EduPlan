@@ -11,65 +11,89 @@
     <p><strong>Name:</strong> {{ user.name }}</p>
     <p><strong>Email:</strong> {{ user.email }}</p>
 
-    <hr>
-    <h4>Upload Transcript</h4>
+    {% if user.role != 'admin' %}
+<hr>
+<h4>Upload Transcript</h4>
 
-    <div class="flex-pair">
-        <div class="auth-box transcript-instructions">
-            <h2>How to Download Your Unofficial Transcript (Student View)</h2>
+<div class="flex-pair">
+    <div class="auth-box transcript-instructions">
+        <h2 onclick="toggleSection('transcriptHowTo')" style="cursor: pointer;">📄 How to Download Your Unofficial Transcript ⬇</h2>
+        <div id="transcriptHowTo" class="collapsible-section" style="display: none;">
             <ol>
                 <li>Log in to DegreeWorks.</li>
-                <li>Make sure you are on the <strong>“Worksheets”</strong> tab.</li>
-                <li>Click the print icon <strong>“Create PDF”</strong> to view your transcript.</li>
-                <li>Once the PDF opens in a new tab or window, open the browser’s <strong>Print</strong> menu (<kbd>Ctrl+P</kbd> or <kbd>Cmd+P</kbd>).</li>
-                <li>Set the printer destination to <strong>“Save as PDF.”</strong></li>
-                <li>Click <strong>Save</strong> to download your unofficial transcript.</li>
+                <li>Go to the <strong>“Worksheets”</strong> tab.</li>
+                <li>Click <strong>“Create PDF”</strong>.</li>
+                <li>Open the Print menu (<kbd>Ctrl+P</kbd> / <kbd>Cmd+P</kbd>).</li>
+                <li>Set to <strong>“Save as PDF”</strong> and click <strong>Save</strong>.</li>
             </ol>
-            <p><strong>Note:</strong> If you're a double major, you may need to download transcripts for each major individually.</p>
+            <p><strong>Note:</strong> Download separate transcripts if you are a double major.</p>
         </div>
-        <section>
-
+    </div>
+    <section>
         <form method="POST" action="{{ url_for('main.transcript_reader') }}" enctype="multipart/form-data" class="upload-box">
             <input type="file" name="transcript" class="form-control mb-2" required>
             <button type="submit" class="btn btn-secondary">Upload</button>
         </form>
-        </section>
-    </div>
+    </section>
+</div>
 
-    <hr>
-    <h4>Canvas Access Token</h4>
-
-    {% if message %}
-    <div class="success-message">{{ message }}</div>
-    {% endif %}
-
-    <div class="flex-pair">
-        <div class="auth-box transcript-instructions">
-            <h2>🔑 How to Generate a Canvas Token</h2>
+<hr>
+<h4>Canvas Access Token</h4>
+{% if message %}
+<div class="success-message">{{ message }}</div>
+{% endif %}
+<div class="flex-pair">
+    <div class="auth-box transcript-instructions">
+        <h2 onclick="toggleSection('canvasHowTo')" style="cursor: pointer;">🔑 How to Generate a Canvas Token ⬇</h2>
+        <div id="canvasHowTo" class="collapsible-section" style="display: none;">
             <ol>
-                <li>🔗 Go to <a href="https://uncg.instructure.com" target="_blank">uncg.instructure.com</a> and log in</li>
-                <li>👤 Click <strong>Account</strong> → <strong>Settings</strong></li>
-                <li>⚙️ Scroll to <strong>Approved Integrations</strong></li>
-                <li>➕ Click <strong>+ New Access Token</strong></li>
-                <li>✏️ Fill in:
+                <li>Go to <a href="https://uncg.instructure.com" target="_blank">uncg.instructure.com</a></li>
+                <li>Click <strong>Account</strong> → <strong>Settings</strong></li>
+                <li>Find <strong>Approved Integrations</strong></li>
+                <li>Click <strong>+ New Access Token</strong></li>
+                <li>Fill in:
                     <ul>
                         <li><strong>Purpose:</strong> <code>EduPlan Integration</code></li>
-                        <li><strong>Expiration Date:</strong> last day of class (e.g. <code>2025-05-02</code>)</li>
+                        <li><strong>Expiration Date:</strong> <code>2025-05-02</code></li>
                     </ul>
                 </li>
-                <li>📋 Click <strong>Generate Token</strong></li>
-                <li>📥 Paste the token below</li>
+                <li>Click <strong>Generate Token</strong> and paste it below</li>
             </ol>
         </div>
-<section>
+    </div>
+    <section>
         <form method="POST" class="upload-box">
             {{ form.hidden_tag() }}
             <label for="token">{{ form.token.label }}</label><br>
             {{ form.token(class="form-control") }}<br><br>
             {{ form.submit(class="btn-primary") }}
         </form>
-    </div>
+    </section>
 </div>
+{% endif %}
+
 </section>
+{% if user.role == 'admin' %}
+<section>
+<hr>
+<h4>Upload Course Catalog</h4>
+<form method="POST" action="{{ url_for('main.upload_catalog') }}" enctype="multipart/form-data" class="upload-box">
+    <input type="file" name="catalog" class="form-control mb-2" required>
+    <button type="submit" class="btn btn-primary">Upload Catalog PDF</button>
+</form>
+</section>
+{% endif %}
+
+<script>
+    function toggleSection(id) {
+        const el = document.getElementById(id);
+        if (el.style.display === 'none') {
+            el.style.display = 'block';
+        } else {
+            el.style.display = 'none';
+        }
+    }
+    </script>
+    
 
 {%endblock%}

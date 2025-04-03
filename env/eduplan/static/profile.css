@@ -44,4 +44,22 @@
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
     max-width: 400px;
   }
-  
+  .collapsible-header {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    gap: 8px;
+    margin-bottom: 5px;
+}
+
+.collapsible-header h2 {
+    margin: 0;
+    font-size: 1.2em;
+}
+
+.toggle-icon {
+    font-size: 1.2em;
+    font-weight: 300;
+    transform: translateY(1px);
+    user-select: none;
+}
