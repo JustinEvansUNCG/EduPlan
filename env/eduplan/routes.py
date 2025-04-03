@@ -4,7 +4,7 @@ from eduplan import bcrypt
 from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, TranscriptForm, CourseCatalogUploadForm, EditCourseForm, CanvasTokenForm
 
 from eduplan import db
-from eduplan.models import study_time, study_event, User, CourseContentAssistance, ClassStatus
+from eduplan.models import study_time, study_event, User, CourseContentAssistance, ClassStatus,CourseResource
 from flask_bcrypt import Bcrypt
 import google.generativeai as genai
 import re
@@ -269,6 +269,24 @@ def resources():
                 ai_response = markdown.markdown(response.text.strip())
             else:
                 ai_response = "Error processing AI response."
+        if response and response.text:
+    
+            clean_text = response.text.strip()
+            ai_response = markdown.markdown(clean_text)
+
+
+            entry = CourseResource(
+                user_id=current_user.id,
+                course_id=int(selected_course) if selected_course else None,
+                question=question,
+                ai_response=clean_text,
+                created_at=datetime.utcnow()
+            )
+            db.session.add(entry)
+            db.session.commit()
+        else:
+            ai_response = "Error processing AI response."    
+    
     try:
         headers = {"Authorization": f"Bearer {canvas_api_token}"}
         res = requests.get(f"{canvas_api_url}/api/v1/courses", headers=headers)
@@ -292,29 +310,39 @@ def resources():
 @login_required
 def course_content():
     ai_response = None
-
     transcript_form = TranscriptForm()
 
     if request.method == "POST":
         question = request.form.get("question", "").strip()
-        
         if not question:
             question = "Explain a general study tip."
 
-        study_prompt = f"Ensure this is a study-related question. If it isn't, ask the user to rephrase, if it is, answer the question and dont say anything about text before this to the user, If the text that follows looks like transcript make sure you consider tailoring your responses based on it {question} "
+        previous_chats = (
+            CourseContentAssistance.query
+            .filter_by(user_id=current_user.id)
+            .order_by(CourseContentAssistance.created_at.desc())
+            .limit(5)
+            .all()
+        )
+
+        chat_context = ""
+        for chat in reversed(previous_chats):
+            chat_context += f"User: {chat.question}\nAI: {chat.ai_response}\n"
+        print(chat_context)
+        study_prompt = (
+            f"Here is the student's previous context:\n{chat_context}\n"
+            f"Ensure this is a study-related question. If it isn't, ask the user to rephrase. "
+            f"If it is, answer the question and tailor the response accordingly.\n"
+            f"New Question: {question}"
+        )
+
         blocked_keywords = ["game", "movie", "politics", "news", "celebrity"]
-        print(study_prompt)
         if any(keyword in question.lower() for keyword in blocked_keywords):
             ai_response = "This question doesn't seem related to studies. Please ask about a study-related topic."
         else:
             model = genai.GenerativeModel("gemini-2.0-flash")
             response = model.generate_content(study_prompt)
             if response and response.text:
-                ai_response = markdown.markdown(response.text.strip())
-            else:
-                ai_response = "Error processing AI response."
-        
-        if response and response.text:
                 clean_text = response.text.strip()
                 ai_response = markdown.markdown(clean_text)
                 entry = CourseContentAssistance(
@@ -322,14 +350,13 @@ def course_content():
                     question=question,
                     ai_response=clean_text
                 )
-                print(entry.question)
-                print(entry.question)
                 db.session.add(entry)
                 db.session.commit()
-        else:
+            else:
                 ai_response = "Error processing AI response."
 
-    return render_template("course_content.html", ai_response=ai_response,  transcript_form=transcript_form)
+    return render_template("course_content.html", ai_response=ai_response, transcript_form=transcript_form)
+
 
 
 
