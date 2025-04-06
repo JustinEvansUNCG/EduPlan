@@ -984,7 +984,7 @@ def connect_canvas():
             current_user.canvas_user_id = test_resp.json().get("id")
             db.session.commit()
             flash("Canvas account connected successfully!", "success")
-            return redirect(url_for('main.canvas_assignments'))
+            return redirect(url_for('main.study_planner'))
         else:
             flash("Invalid token. Please double-check and try again.", "danger")
 
