@@ -104,22 +104,22 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
             <form method="POST" action="{{ url_for('main.modify_study_event') }}" id="modify-form">
                 {{ modify_form.csrf_token }}
-                <p id="event-modify-info" >
+                <p id="event-modify-info">
 
                     {{ modify_form.plan_id(id="plan-id") }}
 
                     {{ modify_form.date.label }}
                     {{ modify_form.date }}
-                    
+
                     {{ modify_form.start_time.label }}
                     {{ modify_form.start_time }}
-                    
+
                     {{ modify_form.end_time.label }}
                     {{ modify_form.end_time }}
-                    
+
                     {{ modify_form.event_title.label }}
                     {{ modify_form.event_title }}
-                    
+
                     {{ modify_form.event_description.label }}
                     {{ modify_form.event_description }}
 
@@ -135,7 +135,7 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
             </form>
 
-            
+
 
         </div>
 
@@ -162,33 +162,33 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
                     {{ add_form.start_time.label }}
                     {{ add_form.start_time }}
-                    
+
                     {{ add_form.end_time.label }}
                     {{ add_form.end_time }}
 
                     {{ add_form.existing_events(id="old-events").label }}
                     {{ add_form.existing_events(id="old-events") }}
 
-                    
+
                     {{ add_form.event_creation_type(id="event_creation_type") }}
 
                 </p>
 
-                <p id="new-event-info">  
-                    
+                <p id="new-event-info">
+
                     {{ add_form.event_title.label }}
                     {{ add_form.event_title }}
 
                     {{ add_form.event_description.label }}
                     {{ add_form.event_description }}
-                
+
                 </p>
 
                 <p>
                     {{ add_form.submit() }}
                 </p>
 
-                
+
 
             </form>
 
@@ -204,13 +204,25 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
 
     <div id="modal-day-view" class="modal">
+
         <div class="modal-content-flex">
-            <span class="close">&times;</span>
+            
+            <header>
+                <span class="close">&times;</span>
+                <div class="day-navigation">
+                    <span id="day-prev" class="material-symbols-rounded">
+                        chevron_left
+                    </span>
+                    <span id="day-next" class="material-symbols-rounded">
+                        chevron_right
+                    </span>
+                </div>
+            </header>
 
             <h2></h2>
             <h3>Assignments Due:</h3>
 
-                
+
 
 
 
