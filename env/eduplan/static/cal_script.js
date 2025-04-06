@@ -574,8 +574,11 @@ const manipulate = () => {
 
                     let day_date = document.querySelectorAll("li");
                     //day_date = day_date[i].classList[0];
-                    console.log(day_date[0].classList);
-                    console.log(add_form.date.data);
+                    
+                    
+                    ////////ADD HERE LATER
+                    //console.log(day_date[0].classList);
+                    //console.log(add_form.date.data);
 
                     //add_form.date.data = day_date.replace("-", "/");
 
@@ -724,7 +727,6 @@ prenexIcons.forEach(icon => {
 
             // Get the last date of the previous month
             let monthlastdate = new Date(year, month, 0).getDate();
-            console.log("hii", lastdate);
 
             // Get the day of the last date of the month
 
@@ -789,6 +791,8 @@ prenexIcons.forEach(icon => {
 const button = document.querySelector(".not-selected");
 button.addEventListener("click", modeChange);
 
+
+//This function is called to switch between the month view and week view
 function modeChange(event) {
 
     if (event.currentTarget.classList.contains("not-selected")) {
@@ -812,7 +816,7 @@ function modeChange(event) {
 
 
 
-
+//This function is simply called to close modals
 function close_event(event) {
     var modal = document.querySelectorAll(".modal");
     modal[0].style.display = "none";
