@@ -36,6 +36,10 @@ header .calendar-navigation {
   display: flex;
 }
 
+header .day-navigation {
+  display: flex;
+}
+
 header .calendar-navigation span {
   height: 38px;
   width: 38px;
@@ -49,7 +53,24 @@ header .calendar-navigation span {
   font-size: 1.9rem;
 }
 
+header .day-navigation span {
+  height: 38px;
+  width: 38px;
+  margin: 0 1px;
+  cursor: pointer;
+  text-align: center;
+  line-height: 38px;
+  border-radius: 50%;
+  user-select: none;
+  color: #aeabab;
+  font-size: 1.9rem;
+}
+
 .calendar-navigation span:last-child {
+  margin-right: -10px;
+}
+
+.day-navigation span:last-child {
   margin-right: -10px;
 }
 

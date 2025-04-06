@@ -26,6 +26,8 @@ from datetime import datetime, timezone, timedelta
 from cryptography.fernet import Fernet
 from math import ceil
 
+import filetype
+
 
 
 
@@ -364,6 +366,7 @@ def course_content():
 @main_blueprint.route("/transcript_reader", methods=["POST"])
 def transcript_reader():
 
+    valid = False
 
     transcript_form = TranscriptForm(request.form)
 
@@ -377,132 +380,150 @@ def transcript_reader():
     file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
     file.save(file_path)
 
+    try:
+        if filetype.guess(file_path).extension is "pdf":
+            valid = True   
+    except Exception:
+        valid = False
 
-    reader = PdfReader(file_path)
-    page_count = len(reader.pages)
-    course_list = list()
+    #print(filetype.guess(file_path).extension)
+    #filetype.Type
+    if valid:
 
-
-    old_data = db.session.query(ClassStatus).filter_by(user_id=session['user_id']).delete()
-    #db.session.delete(old_data)
-    db.session.commit()
+        reader = PdfReader(file_path)
+        page_count = len(reader.pages)
+        course_list = list()
 
     
+    
 
+        for i in range(page_count):
 
-    for i in range(page_count):
+            page = reader.pages[i]
+            text = page.extract_text()
+            temp_list = text.split("\n")
+            #print(text)
+            if i == 0:
+                document = text.split(" ")
+                if document[0] != "UNCG":
+                    valid = False
+                    break
 
-        page = reader.pages[i]
-        text = page.extract_text()
-        temp_list = text.split("\n")
-        print(text)
+            course_code_pattern = "and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]L|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]|and [0-9][0-9][0-9]L|or [0-9][0-9][0-9]L|and [0-9][0-9][0-9]|or [0-9][0-9][0-9]"
 
-        course_code_pattern = "and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]L|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]|and [0-9][0-9][0-9]L|or [0-9][0-9][0-9]L|and [0-9][0-9][0-9]|or [0-9][0-9][0-9]"
-
-        #"and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]"
-        
-
-        for item in temp_list:
-            line_check = re.findall(course_code_pattern, item)
-
-            if line_check:
-
-                course_list.append(item)
-
-    #print(*course_list, sep="\n")
-
-
-    incomplete_list = dict()
-    complete_list = dict()
-
-
-    for item in course_list:
-
-        line_check = re.findall(course_code_pattern, item)
-        grades_check = re.findall("[A-Z][+] [0-9][A-Z][a-z][a-z]|[A-Z]- [0-9][A-Z][a-z][a-z]|[A-Z] [0-9][A-Z][a-z][a-z]|[A-Z][+] [0-9] [A-Z][a-z][a-z]|[A-Z]- [0-9] [A-Z][a-z][a-z]|[A-Z] [0-9] [A-Z][a-z][a-z]", item)
-
-        #lab_check = re.findall("[A-Z][A-Z][A-Z]\s[0-9][0-9][0-9][L]\s", item)
-
-        completed_check = re.findall("[a-z][a-z][a-z]\s[0-9]", item)
-        inc_check = re.findall("[1-9][0-9] Credits|[1-9] Credits", item)
-        #grades = list()
-
-
-        #print(line_check)
-
-    #some issues remain with cases on the transcript that say "or"
-        if inc_check:
-            credits = inc_check[0][0] + inc_check[0][1]
-            credits = credits.replace(" ", "")
-
-            if len(line_check) > 1:
-                for i in range(len(line_check)):
-                    if "and" in line_check[i]:
-                        if len(line_check[i]) < 9:
-                            line_check[i] = line_check[i].replace("and", line_check[0][0:3])
-                        else:
-                            line_check[i] = line_check[i].replace("and ", "")
-                        incomplete_list[line_check[i]] = ["", int(credits) / len(line_check)]
-                        #incomplete_list[line_check[i]][1] = credits
-
-                        if i == len(line_check)-1:
-                            incomplete_list[line_check[0]] = ["", int(credits) / len(line_check)]
-                            #incomplete_list[line_check[i]][1] = credits
-
-                    if "or" in line_check[i]:
-                        if len(line_check[i]) < 8:
-                            line_check[0] = line_check[0] + "-" + line_check[i][3:6]
-                        else:
-                            line_check[i] = line_check[i].replace("or ", "")
-                            line_check[0] = line_check[0] + "-" + line_check[i]
-
-                        if i == len(line_check)-1:
-                            incomplete_list[line_check[0]] = ["", credits]
-                            #incomplete_list[line_check[0]][1] = credits
-
-
-
-            else:
-                incomplete_list[line_check[0]] = ["", credits]
-                #incomplete_list[line_check[0]][1] = credits
-
+            #"and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]"
             
-        elif line_check and grades_check:
-            grade = grades_check[0][0] + grades_check[0][1]
-            grade = grade.replace(" ", "")
-            complete_list[line_check[0]] = [grade, ""]
-            #complete_list[line_check[0]][1] = ""
 
-    #print(*incomplete_list.keys(), sep="\n")
+            for item in temp_list:
+                line_check = re.findall(course_code_pattern, item)
+
+                if line_check:
+
+                    course_list.append(item)
+
+        #print(*course_list, sep="\n")
+
+
+        incomplete_list = dict()
+        complete_list = dict()
+
+        if valid:
+
+            old_data = db.session.query(ClassStatus).filter_by(user_id=session['user_id']).delete()
+            #db.session.delete(old_data)
+            db.session.commit()
+
+            for item in course_list:
+
+                line_check = re.findall(course_code_pattern, item)
+                grades_check = re.findall("[A-Z][+] [0-9][A-Z][a-z][a-z]|[A-Z]- [0-9][A-Z][a-z][a-z]|[A-Z] [0-9][A-Z][a-z][a-z]|[A-Z][+] [0-9] [A-Z][a-z][a-z]|[A-Z]- [0-9] [A-Z][a-z][a-z]|[A-Z] [0-9] [A-Z][a-z][a-z]", item)
+
+                #lab_check = re.findall("[A-Z][A-Z][A-Z]\s[0-9][0-9][0-9][L]\s", item)
+
+                completed_check = re.findall("[a-z][a-z][a-z]\s[0-9]", item)
+                inc_check = re.findall("[1-9][0-9] Credits|[1-9] Credits", item)
+                #grades = list()
+
+
+                #print(line_check)
+
+            #some issues remain with cases on the transcript that say "or"
+                if inc_check:
+                    credits = inc_check[0][0] + inc_check[0][1]
+                    credits = credits.replace(" ", "")
+
+                    if len(line_check) > 1:
+                        for i in range(len(line_check)):
+                            if "and" in line_check[i]:
+                                if len(line_check[i]) < 9:
+                                    line_check[i] = line_check[i].replace("and", line_check[0][0:3])
+                                else:
+                                    line_check[i] = line_check[i].replace("and ", "")
+                                incomplete_list[line_check[i]] = ["", int(credits) / len(line_check)]
+                                #incomplete_list[line_check[i]][1] = credits
+
+                                if i == len(line_check)-1:
+                                    incomplete_list[line_check[0]] = ["", int(credits) / len(line_check)]
+                                    #incomplete_list[line_check[i]][1] = credits
+
+                            if "or" in line_check[i]:
+                                if len(line_check[i]) < 8:
+                                    line_check[0] = line_check[0] + "-" + line_check[i][3:6]
+                                else:
+                                    line_check[i] = line_check[i].replace("or ", "")
+                                    line_check[0] = line_check[0] + "-" + line_check[i]
+
+                                if i == len(line_check)-1:
+                                    incomplete_list[line_check[0]] = ["", credits]
+                                    #incomplete_list[line_check[0]][1] = credits
+
+
+
+                    else:
+                        incomplete_list[line_check[0]] = ["", credits]
+                        #incomplete_list[line_check[0]][1] = credits
+
+                    
+                elif line_check and grades_check:
+                    grade = grades_check[0][0] + grades_check[0][1]
+                    grade = grade.replace(" ", "")
+                    complete_list[line_check[0]] = [grade, ""]
+                #complete_list[line_check[0]][1] = ""
+
+            #print(*incomplete_list.keys(), sep="\n")
+            
+
+            #combines classes needed with classes completed
+            incomplete_list.update(complete_list)
+
+
+            #breaks up dictionary, leaving us with the course codes in courses, and grade and credits in grades
+            courses = list(incomplete_list.keys())
+            grades = list(incomplete_list.values())
+
+            #print(*courses, *grades, sep="\n")
+            
+            for i in range(len(courses)):
+                
+                #checks if grade is empty or not
+                if grades[i][0] != "":
+                    course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i][0], completed = True)
+                else:
+                    course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i][0], credits=grades[i][1], completed = False)
+                db.session.add(course)
+                db.session.commit()
            
-
-    #combines classes needed with classes completed
-    incomplete_list.update(complete_list)
-
-
-    #breaks up dictionary, leaving us with the course codes in courses, and grade and credits in grades
-    courses = list(incomplete_list.keys())
-    grades = list(incomplete_list.values())
-
-    #print(*courses, *grades, sep="\n")
-    
-    for i in range(len(courses)):
-        
-        #checks if grade is empty or not
-        if grades[i][0] != "":
-            course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i][0], completed = True)
-        else:
-            course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i][0], credits=grades[i][1], completed = False)
-        db.session.add(course)
-        db.session.commit()
-        #print(courses[i], grades[i])
 
 
 
     os.remove(file_path)
 
-
-    return redirect(url_for('main.home'))
+    
+    if valid:
+        flash('Transcript Uploaded!')
+    else:
+        flash('Error processing transcript')
+    return redirect(url_for('main.course_content'))
 
 
 @main_blueprint.route('/profile', methods=['GET', 'POST'])
