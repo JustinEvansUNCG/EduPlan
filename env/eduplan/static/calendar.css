@@ -322,3 +322,8 @@ tr {
 h2 {
   color: black;
 }
+
+#new-event-deactivate {
+  display: none;
+}
+

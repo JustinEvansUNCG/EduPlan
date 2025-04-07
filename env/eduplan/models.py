@@ -159,6 +159,17 @@ class study_time (db.Model):
 
     def __repr__(self):
         return f"{self.date}"
+    
+class assignments (db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    due_date = db.Column(db.String(100), nullable = False)
+    name = db.Column(db.String(150), nullable = False)
+    course_code = db.Column(db.String(150), nullable = False)
+
+    def __repr__(self):
+        return f"{self.name}"
+
 
 class AdminActivity(db.Model):
     __tablename__ = 'admin_activity'
