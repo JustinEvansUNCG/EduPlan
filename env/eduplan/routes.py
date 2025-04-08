@@ -251,36 +251,50 @@ def resources():
         question = request.form.get("question", "").strip()
         selected_course = request.form.get("selected_course", "").strip()
 
-        if not question:
-            question = "Explain a general study tip."
+    if not question:
+        question = "Explain a general study tip."
 
-        course_info = f" This question is related to the course: {selected_course}." if selected_course else ""
-        study_prompt = (
-            f"Ensure this is a question related to: {course_info} "
-            f"If it isn't, ask the user to rephrase. "
-            f"If it is, answer the question and don’t say anything about anything before this text {question}"
-        )
-        print(study_prompt)
-        blocked_keywords = ["game", "movie", "politics", "news", "celebrity"]
+    selected_course = selected_course[:7]  # keep course code clean like 'ARH 113'
 
-        if any(keyword in question.lower() for keyword in blocked_keywords):
-            ai_response = "This question doesn't seem related to studies. Please ask about a study-related topic."
-        else:
-            model = genai.GenerativeModel("gemini-2.0-flash")
-            response = model.generate_content(study_prompt)
-            if response and response.text:
-                ai_response = markdown.markdown(response.text.strip())
-            else:
-                ai_response = "Error processing AI response."
+    # Get course info
+    course_obj = Course.query.filter_by(course_code=selected_course).first()
+    course_info = f"{course_obj.course_code}: {course_obj.course_name}. {course_obj.description}" if course_obj else f"{selected_course}"
+
+    # Get recent chat context from CourseResource (limit to last 5)
+    previous_chats = (
+        CourseResource.query
+        .filter_by(user_id=current_user.id, course_id=selected_course)
+        .order_by(CourseResource.created_at.desc())
+        .limit(5)
+        .all()
+    )
+
+    chat_context = ""
+    for chat in reversed(previous_chats):
+        chat_context += f"User: {chat.question}\nAI: {chat.ai_response}\n"
+
+    # Construct AI prompt with course context + recent interactions
+    study_prompt = (
+        f"Course Context: {course_info}\n"
+        f"Recent Discussion:\n{chat_context}\n"
+        f"New Question: {question}\n\n"
+        f"If the question is not related to the course, ask the user to rephrase. "
+        f"Otherwise, provide a clear and helpful answer."
+    )
+
+    blocked_keywords = ["game", "movie", "politics", "news", "celebrity"]
+    if any(keyword in question.lower() for keyword in blocked_keywords):
+        ai_response = "This question doesn't seem related to studies. Please ask about a study-related topic."
+    else:
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response = model.generate_content(study_prompt)
         if response and response.text:
-    
             clean_text = response.text.strip()
             ai_response = markdown.markdown(clean_text)
 
-
             entry = CourseResource(
                 user_id=current_user.id,
-                course_id=int(selected_course) if selected_course else None,
+                course_id=selected_course if selected_course else None,
                 question=question,
                 ai_response=clean_text,
                 created_at=datetime.utcnow()
@@ -288,7 +302,8 @@ def resources():
             db.session.add(entry)
             db.session.commit()
         else:
-            ai_response = "Error processing AI response."    
+            ai_response = "Error processing AI response."
+  
     
     try:
         headers = {"Authorization": f"Bearer {canvas_api_token}"}

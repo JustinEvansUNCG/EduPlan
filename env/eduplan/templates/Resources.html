@@ -13,7 +13,7 @@
             <select id="topicDropdown" name="selected_course" required>
                 <option value="">-- Select a Course --</option>
                 {% for course in canvas_courses %}
-                <option value="{{ course.id }}">{{ course.id }}</option>
+                <option value="{{ course.name }}">{{ course.name }}</option>
 
                 {% endfor %}
 
