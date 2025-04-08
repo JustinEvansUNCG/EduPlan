@@ -7,6 +7,9 @@ let event_json;
 let assignment_data;
 let assignment_json;
 
+let assignment_data_temp;
+let assignment_json_temp;
+
 let events;
 let user_events_json;
 
@@ -28,21 +31,43 @@ async function getAssignments() {
             assignment_data = assignment_data.replaceAll("'", '"');
             assignment_json = JSON.parse(assignment_data);
 
-            console.log(assignment_data);
+            //console.log(assignment_data);
 
 
         })
         .catch(error => {
             console.error('Error:', error);
         });
+    refreshAssignments();
 
 }
 getAssignments();
 
+async function refreshAssignments() {
+    console.log("test");
+    await fetch('/canvas/assignments/refresh')
+        .then(response => response.json())
+        .then(data => {
+            // Use the data in your JavaScript code
+            assignment_data_temp = "[" + String(data) + "]";
+            assignment_data_temp = assignment_data.replaceAll("'", '"');
+            assignment_json_temp = JSON.parse(assignment_data);
+
+            //console.log(assignment_data_temp);
+
+
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    assignment_data = assignment_data_temp;
+    assignment_json = assignment_json_temp;
+}
+
+
 
 
 async function getEvents() {
-    console.log("test");
     await fetch('/api/event_times')
         .then(response => response.json())
         .then(data => {
@@ -51,7 +76,7 @@ async function getEvents() {
             event_data = event_data.replaceAll("'", '"');
             event_json = JSON.parse(event_data);
 
-            console.log(event_data);
+            //console.log(event_data);
 
 
         })
@@ -74,7 +99,7 @@ fetch('/api/events')
         events = events.replaceAll("'", '"');
         user_events_json = JSON.parse(events);
 
-        console.log(events);
+        //console.log(events);
 
     })
     .catch(error => {
@@ -210,10 +235,19 @@ const manipulate = () => {
         document.querySelector(".calendar-dates").innerHTML = "";
         let plan_id = [];
 
-        if (document.getElementById("week-background") === null) {
-            const week_display = document.createElement("div");
-            week_display.id = "week-background";
-            week_display.innerHTML = `
+        if (document.getElementById("week-background") !== null) {
+
+            document.getElementById("week-background").remove();
+
+
+        }
+
+        const week_display = document.createElement("div");
+        week_display.id = "week-background";
+
+
+
+        week_display.innerHTML = `
     
                 <div id="sunday" class="flex-day"></div>
                 <div id="monday" class="flex-day"></div>
@@ -226,9 +260,9 @@ const manipulate = () => {
             `;
 
 
-            document.querySelector(".calendar-dates").after(week_display);
+        document.querySelector(".calendar-dates").after(week_display);
 
-        }
+
         let previous_events = document.getElementsByClassName("flex-event");
         const event_count = previous_events.length;
         for (let i = 0; i < event_count; i++) {
@@ -339,9 +373,9 @@ const manipulate = () => {
                 else {
                     temp = temp + i;
                 }
-                console.log(temp);
+                
                 let the_date = new Date(year, month, i).getDay();
-                console.log(days[the_date]);
+                
 
 
 
@@ -415,7 +449,7 @@ const manipulate = () => {
             }
             console.log(temp);
             let the_date = new Date(year, month + 1, i).getDay();
-            console.log(days[the_date]);
+            
 
 
 
@@ -450,11 +484,11 @@ const manipulate = () => {
         day.innerHTML = lit;
 
         const event_objects = document.querySelectorAll(".flex-event");
-        console.log(event_objects.length);
+        
         let testnum = 0;
         for (let i = 0; i < event_objects.length; i++) {
 
-            console.log(event_objects[i]);
+            
             let event_object = document.querySelectorAll(".flex-event")[i];
 
             //event_object.addEventListener("click", check_events);
@@ -547,7 +581,9 @@ const manipulate = () => {
 
         for (let i = 0; i < day_blocks.length; i++) {
 
-            day_blocks[i].addEventListener("dblclick", () => {
+            day_blocks[i].addEventListener("dblclick", event_creation);
+
+            function event_creation() {
 
 
                 var modal = document.getElementById("modal-event-add");
@@ -559,33 +595,51 @@ const manipulate = () => {
                 event_type.value = 0;
 
                 var new_event_btn = document.getElementById("new-event-btn");
-                new_event_btn.addEventListener("click", () => {
+                new_event_btn.addEventListener("click", new_event_displayer);
+
+                function new_event_displayer() {
 
                     document.getElementById("new-event-info").style.display = "block";
                     document.getElementById("old-events").style.display = "none";
+                    document.getElementById("new-event-activate").style.display = "none";
+                    document.getElementById("new-event-deactivate").style.display = "block";
                     event_type.value = 1;
+                    console.log("foo");
+                    
+
+
+                }
+
+                var old_event_btn = document.getElementById("old-event-btn");
+                old_event_btn.addEventListener("click", old_event_displayer);
+
+                function old_event_displayer() {
+
+                    document.getElementById("new-event-info").style.display = "none";
+                    document.getElementById("old-events").style.display = "block";
+                    document.getElementById("new-event-deactivate").style.display = "none";
+                    document.getElementById("new-event-activate").style.display = "block";
+                    event_type.value = 0;
+                    
 
 
 
-                })
+                }
+
+
 
 
                 const add_form = document.getElementById("add-form");
                 //form.submit();
-                add_form.addEventListener("submit", async function (event) {
+                add_form.addEventListener("submit", add_event);
+
+
+                async function add_event(event) {
                     event.preventDefault();
 
                     const form_info = new FormData(add_form);
 
                     let day_date = document.querySelectorAll("li");
-                    //day_date = day_date[i].classList[0];
-
-
-                    ////////ADD HERE LATER
-                    //console.log(day_date[0].classList);
-                    //console.log(add_form.date.data);
-
-                    //add_form.date.data = day_date.replace("-", "/");
 
                     const response = await fetch('/study_planner/add', {
                         method: 'POST',
@@ -598,22 +652,47 @@ const manipulate = () => {
 
                     const func = async () => {
                         await getEvents();
-                        close_event();
+                        close_modals();
                         manipulate();
+                        for (let i = 0; i < day_blocks.length; i++) {
+                            console.log("hellelelelele");
+                            day_blocks[i].removeEventListener("dblclick", event_creation);
+                        }
+                        add_form.removeEventListener("submit", add_event);
+                        old_event_btn.removeEventListener("click", old_event_displayer);
+                        new_event_btn.removeEventListener("click", new_event_displayer);
+
                     }
 
                     await func();
-                })
+
+                }
 
 
 
 
 
                 var close = modal.querySelector(".close");
-                close.addEventListener("click", close_event);
+                close.addEventListener("click", close_modals);
+
+                function close_modals(event) {
+                    var modal = document.querySelectorAll(".modal");
+                    modal[0].style.display = "none";
+                    modal[1].style.display = "none";
+                    modal[2].style.display = "none";
+
+                    add_form.removeEventListener("submit", add_event);
+                    old_event_btn.removeEventListener("click", old_event_displayer);
+                    new_event_btn.removeEventListener("click", new_event_displayer);
+                    //this_block.removeEventListener("dblclick", event_creation);
+
+                }
 
 
-            })
+
+                //day_blocks[i].removeEventListener("dblclick", event_creation);
+
+            }
 
 
         }
@@ -624,14 +703,13 @@ const manipulate = () => {
 
 
     }
-    
+
     all_days = document.querySelectorAll("li");
     for (let i = 0; i < all_days.length; i++) {
 
         if (all_days[i].classList[0] !== "inactive") {
 
             all_days[i].addEventListener("click", () => {
-                console.log("sneaky");
                 day_view(all_days, i);
             });
         }
@@ -641,48 +719,48 @@ const manipulate = () => {
             var modal_content = modal.querySelector(".modal-content-flex");
             var yesterday_btn = document.getElementById("day-prev");
             var tomorrow_btn = document.getElementById("day-next");
-
+ 
             yesterday_btn.addEventListener("click", () => {
-
+ 
                 console.log("hello there");
             })
             console.log("hello there 2");
-
+ 
             tomorrow_btn.addEventListener("click", () => {
                 i = i + 1;
             })
-
+ 
             while (modal_content.querySelector(".flex-assignment")) {
                 modal_content.querySelector(".flex-assignment").remove();
             }
-
+ 
             let day_date = all_days[i].classList[0];
             for (let j = 0; j < Object.keys(assignment_json).length; j++) {
-
+ 
                 let temp_date = assignment_json[j]["due_at"].substring(0, 10);
                 if (temp_date === day_date) {
                     //lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
                     //const day_object = document.getElementById(days[the_date]);
-
+ 
                     let assignment_object = document.createElement("div");
                     assignment_object.classList.add("flex-assignment");
                     assignment_object.innerHTML = `${assignment_json[j]["name"]}-${assignment_json[j]["course_name"]}  <br> ${assignment_json[j]["due_at"]}`;
                     modal_content.appendChild(assignment_object);
                     //plan_id.push(event_json[j]["plan_id"])
-
+ 
                 }
-
+ 
             }
-
+ 
             modal.querySelector("h2").innerHTML = all_days[i].classList;
             modal.style.display = "block";
-
-
+ 
+ 
             var close = modal.querySelector(".close");
             close.addEventListener("click", close_event);
-
-
-
+ 
+ 
+ 
         })*/
 
     }
@@ -868,7 +946,6 @@ function day_view(all_days, i) {
 
 
     //let day = event.currentTarget;
-    console.log("hello jfioewfj");
     var modal = document.getElementById("modal-day-view");
     var modal_content = modal.querySelector(".modal-content-flex");
     var yesterday_btn = document.getElementById("day-prev");
@@ -880,7 +957,7 @@ function day_view(all_days, i) {
         modal_content.querySelector(".flex-assignment").remove();
     }
 
-    
+
     let day_date = all_days[i].classList[0];
     for (let j = 0; j < Object.keys(assignment_json).length; j++) {
 
@@ -903,7 +980,7 @@ function day_view(all_days, i) {
     modal.style.display = "block";
 
     const controller = new AbortController();
-    if (all_days[i-1].classList[0] && all_days[i-1].classList[0] !== "inactive") {
+    if (all_days[i - 1].classList[0] && all_days[i - 1].classList[0] !== "inactive") {
         yesterday_btn.addEventListener("click", yesterday_click);
 
         function yesterday_click(event) {
@@ -913,7 +990,7 @@ function day_view(all_days, i) {
         }
     }
 
-    if (all_days[i+1] && all_days[i+1].classList[0] !== "inactive") {
+    if (all_days[i + 1] && all_days[i + 1].classList[0] !== "inactive") {
         tomorrow_btn.addEventListener("click", tomorrow_click);
 
         function tomorrow_click(event) {
@@ -931,7 +1008,7 @@ function day_view(all_days, i) {
 
     var close = modal.querySelector(".close");
     close.addEventListener("click", close_day);
-    
+
     function close_day() {
         var modal = document.querySelectorAll(".modal");
         modal[2].style.display = "none";

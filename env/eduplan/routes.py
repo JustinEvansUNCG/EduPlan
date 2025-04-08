@@ -4,7 +4,7 @@ from eduplan import bcrypt
 from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, TranscriptForm, CourseCatalogUploadForm, EditCourseForm, CanvasTokenForm
 
 from eduplan import db
-from eduplan.models import study_time, study_event, User, CourseContentAssistance, ClassStatus,CourseResource
+from eduplan.models import study_time, study_event, User, CourseContentAssistance, ClassStatus,CourseResource, assignments
 from flask_bcrypt import Bcrypt
 import google.generativeai as genai
 import re
@@ -158,9 +158,6 @@ def add_study_event():
     
     if request.method == 'POST' and add_form.validate():
         
-
-        print("whats up")
-        print(type(add_form.event_creation_type.data))
         if add_form.event_creation_type.data == "0":
             planned_event = study_time(date = add_form.date.data, event_id = add_form.existing_events.data, start_time = add_form.start_time.data, end_time = add_form.end_time.data)
             db.session.add(planned_event)
@@ -1013,8 +1010,8 @@ def connect_canvas():
         if test_resp.status_code == 200:
 
             #encrptyion
-            fernet = Fernet(current_app.config["FERNET_KEY"])
-            encrypted_token = fernet.encrypt(token.encode()).decode()
+            #fernet = Fernet(current_app.config["FERNET_KEY"])
+            #encrypted_token = fernet.encrypt(token.encode()).decode()
 
             current_user.canvas_token = token
             current_user.canvas_user_id = test_resp.json().get("id")
@@ -1045,13 +1042,18 @@ def regenerate_canvas_token():
 
     return render_template('regenerate_canvas_token.html', form=form)
 
-@main_blueprint.route('/canvas/assignments')
+@main_blueprint.route('/canvas/assignments/refresh')
 @login_required
-def canvas_assignments():
+def canvas_assignments_refresh():
     token = current_user.canvas_token
     if not token:
+       
         flash("You need to connect your Canvas account first.", "warning")
-        return redirect(url_for('main.connect_canvas'))
+        #return redirect(url_for('main.connect_canvas'))
+        return jsonify([])
+    
+    db.session.query(assignments).filter_by(user_id=session['user_id']).delete()
+    db.session.commit()
 
    # fernet = Fernet(current_app.config["FERNET_KEY"])
     #try:
@@ -1091,13 +1093,17 @@ def canvas_assignments():
         cid = course.get("id")
         assignments_resp = requests.get(
             f"https://uncg.instructure.com/api/v1/courses/{cid}/assignments",
-            headers=headers
+            headers=headers,
+            params= {
+                "bucket": "future",
+                "order_by": "due_at"
+            }
         )
         if assignments_resp.ok:
-            assignments = assignments_resp.json()
-            for assignment in assignments:
+            assignments_item = assignments_resp.json()
+            for assignment in assignments_item:
                 assignment['course_name'] = course.get('name')
-            all_assignments.extend(assignments)
+            all_assignments.extend(assignments_item)
 
     now = datetime.now(timezone.utc)
     upcoming = []
@@ -1131,12 +1137,37 @@ def canvas_assignments():
     #    courses=recent_courses
     #)
     assignment_list = []
+
+    for assignmentss in upcoming:
+        due_date = datetime.fromisoformat(assignmentss["due_at"]) - timedelta(hours=4)
+        assignment = assignments(user_id = session['user_id'], due_date = str(due_date), name = assignmentss["name"], course_code = assignmentss["course_name"])
+        db.session.add(assignment)
+        db.session.commit()
+
+
     for assignmentss in upcoming:
         due_date = datetime.fromisoformat(assignmentss["due_at"]) - timedelta(hours=4)
         assignment_list.append(str({"name": assignmentss["name"], "due_at": str(due_date), "course_name": assignmentss["course_name"]}))
         #return jsonify(event_list)
     #print(upcoming["name"])
+    print("foo", assignment_list)
 
+    return jsonify(assignment_list)
+
+
+
+@main_blueprint.route('/canvas/assignments')
+@login_required
+def canvas_assignments():
+    
+    all_assignments = db.session.query(assignments).filter_by(user_id=session['user_id']).all()
+
+    assignment_list = []
+
+    for assignment in all_assignments:
+        assignment_list.append(str({"name": assignment.name, "due_at": assignment.due_date, "course_name": assignment.course_code}))
+
+    print(assignment_list)
     return jsonify(assignment_list)
 
 

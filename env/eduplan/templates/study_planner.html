@@ -148,8 +148,7 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
         <div class="modal-content">
             <span class="close">&times;</span>
 
-            <p>Don't see an event you need? Click button to create new event and study plan</p>
-            <button id="new-event-btn">Create Plan with new event</button>
+
 
             <h2></h2>
             <h3>Create New Event</h3>
@@ -174,6 +173,7 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
                 </p>
 
+
                 <p id="new-event-info">
 
                     {{ add_form.event_title.label }}
@@ -184,6 +184,7 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
                 </p>
 
+
                 <p>
                     {{ add_form.submit() }}
                 </p>
@@ -191,6 +192,18 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
 
             </form>
+
+            <div id="new-event-deactivate">
+                    
+                <button id="old-event-btn">Use an existing event?</button>
+
+            </div>
+
+            <div id="new-event-activate">
+                    
+                <button id="new-event-btn">Need a new event?</button>
+
+            </div>
 
 
 
