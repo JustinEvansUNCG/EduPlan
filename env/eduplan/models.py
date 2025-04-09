@@ -93,6 +93,7 @@ class CourseResource(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    chat_id = db.Column(db.Integer, db.ForeignKey('resource_chats.id'), nullable=False)
     course_id = db.Column(db.String(20), db.ForeignKey('courses.course_code'), nullable=True)
     question = db.Column(db.Text, nullable=False)
     ai_response = db.Column(db.Text, nullable=False)
@@ -192,4 +193,14 @@ class Transcript(db.Model):
     course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class ResourceChat(db.Model):
+    __tablename__ = 'resource_chats'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    title = db.Column(db.String(255), nullable=False, default="Untitled Chat")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    messages = db.relationship('CourseResource', backref='chat', cascade='all, delete-orphan')
 

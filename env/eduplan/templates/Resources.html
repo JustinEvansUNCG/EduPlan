@@ -2,38 +2,168 @@
 {% block title %}Resources{% endblock %}
 {% block head %}
 {{ super() }}
+<style>
+  .flex {
+    display: flex;
+    height: calc(100vh - 64px);
+    overflow: hidden;
+  }
+
+  .sidebar {
+    width: 320px;
+    background-color: #f9fafb;
+    padding: 1rem;
+    border-right: 1px solid #e5e7eb;
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  .main-content {
+    flex-grow: 1;
+    padding: 2rem;
+    overflow-y: auto;
+    height: 100vh;
+  }
+
+  .chatbox input[type="text"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+  }
+
+  .chatbox button {
+    background-color: #4f46e5;
+    color: white;
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.5rem;
+    border: none;
+    font-weight: bold;
+  }
+
+  .new-chat-btn {
+    display: inline-block;
+    background-color: #6366f1;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    width: 100%;
+    text-decoration: none;
+    font-weight: bold;
+  }
+
+  .chat-history li {
+    margin-bottom: 0.5rem;
+  }
+
+  .chat-history a {
+    text-decoration: none;
+    color: #111827;
+    display: block;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+  }
+
+  .chat-history a:hover {
+    background-color: #e5e7eb;
+  }
+
+  .chat-log {
+    margin-top: 2rem;
+  }
+
+  .chat-entry {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.5rem;
+  }
+
+  .chat-bubble {
+    max-width: 75%;
+    padding: 1rem;
+    border-radius: 1rem;
+    word-wrap: break-word;
+    font-size: 1rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+
+  .user-question {
+    align-self: flex-end;
+    background-color: #e0e7ff;
+  }
+
+  .ai-response {
+    align-self: flex-start;
+    background-color: #f3f4f6;
+  }
+</style>
 {% endblock %}
+
 {% block content %}
-<div class="container">
-    <h2>Select a Study Topic</h2>
+<div class="flex">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <a href="{{ url_for('main.new_resource_chat') }}" class="new-chat-btn">+ New Chat</a>
+    <ul class="chat-history">
+      {% for chat in chats %}
+      <li>
+        <a href="{{ url_for('main.resources', chat_id=chat.id) }}">{{ chat.title or "Untitled Chat" }}</a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- Main Chat Interface -->
+  <div class="main-content">
     <form method="POST" action="/resources">
-        <div class="topic-list">
+      <input type="hidden" name="chat_id" value="{{ current_chat.id if current_chat else '' }}">
+      <label for="topicDropdown"><strong>Courses:</strong></label>
+      <select id="topicDropdown" name="selected_course" required>
+        <option value="">-- Select a Course --</option>
+        {% for course in canvas_courses %}
+          <option value="{{ course.name }}">{{ course.name }}</option>
+        {% endfor %}
+      </select>
 
-            <label for="topicDropdown">Courses:</label>
-            <select id="topicDropdown" name="selected_course" required>
-                <option value="">-- Select a Course --</option>
-                {% for course in canvas_courses %}
-                <option value="{{ course.name }}">{{ course.name }}</option>
-
-                {% endfor %}
-
-            </select>
-            
-        </div>
-        
-
-        <h3>Ask a Question About Study Resources</h3>
-        <div class="chatbox">
-            <input type="text" name="question" id="questionInput" placeholder="Type your question..." required>
-            <button type="submit">Ask</button>
-        </div>
+      <h3 class="mt-4"><strong>Ask a Question About Study Resources</strong></h3>
+      <div class="chatbox">
+        <input type="text" name="question" id="questionInput" placeholder="Type your question..." required>
+        <button type="submit">Ask</button>
+      </div>
     </form>
 
-    <div class="messages" id="chatMessages">
     {% if ai_response %}
-        <h4>AI Response:</h4>
-        <p>{{ ai_response | safe }}</p>
-    {% endif %}
+    <div class="chat-log">
+      <div class="chat-entry">
+        <div class="chat-bubble user-question">
+          {{ request.form.get('question', '') }}
+        </div>
+        <div class="chat-bubble ai-response">
+          {{ ai_response | safe }}
+        </div>
+      </div>
     </div>
+    {% endif %}
+
+    {% if messages %}
+    <div class="chat-log">
+      {% for msg in messages %}
+      <div class="chat-entry">
+        <div class="chat-bubble user-question">
+          {{ msg.question }}
+        </div>
+        <div class="chat-bubble ai-response">
+          {{ msg.ai_response | safe }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}
