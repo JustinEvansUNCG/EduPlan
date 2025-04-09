@@ -4,7 +4,7 @@ from eduplan import bcrypt
 from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, TranscriptForm, CourseCatalogUploadForm, EditCourseForm, CanvasTokenForm
 
 from eduplan import db
-from eduplan.models import study_time, study_event, User, CourseContentAssistance, ClassStatus,CourseResource, assignments
+from eduplan.models import study_time, study_event, User, CourseContentAssistance, ClassStatus,CourseResource, assignments, ResourceChat
 from flask_bcrypt import Bcrypt
 import google.generativeai as genai
 import re
@@ -241,69 +241,98 @@ def login():
 @main_blueprint.route("/resources", methods=["GET", "POST"])
 @login_required
 def resources():
+    chat_id = request.args.get("chat_id")
     ai_response = None
     canvas_courses = []
+    current_chat = None
+    messages = []
+
+    if chat_id:
+        current_chat = ResourceChat.query.filter_by(id=chat_id, user_id=current_user.id).first()
+        if current_chat:
+            messages = CourseResource.query.filter_by(chat_id=current_chat.id).order_by(CourseResource.created_at).all()
+    try:
+        headers = {"Authorization": f"Bearer {canvas_api_token}"}
+        params = {"include[]": "enrollments"}
+        res = requests.get(f"{canvas_api_url}/api/v1/courses", headers=headers, params=params)
+
+        if res.status_code == 200:
+            canvas_courses = [
+                {
+                    "id": course["id"],
+                    "name": course["name"],
+                    "enrollments": course.get("enrollments", [{}])[0].get("enrollment_state", "unknown")
+                }
+                for course in res.json()
+                if not course.get("access_restricted_by_date")
+            ]
+    except Exception as e:
+        print(f"Canvas API error: {e}")
 
     if request.method == "POST":
         question = request.form.get("question", "").strip()
         selected_course = request.form.get("selected_course", "").strip()
+        chat_id = request.form.get("chat_id")
 
-        if not question:
-            question = "Explain a general study tip."
+        if not current_chat and chat_id:
+            current_chat = ResourceChat.query.filter_by(id=chat_id, user_id=current_user.id).first()
 
-        course_info = f" This question is related to the course: {selected_course}." if selected_course else ""
-        study_prompt = (
-            f"Ensure this is a question related to: {course_info} "
-            f"If it isn't, ask the user to rephrase. "
-            f"If it is, answer the question and don’t say anything about anything before this text {question}"
-        )
-        print(study_prompt)
-        blocked_keywords = ["game", "movie", "politics", "news", "celebrity"]
-
-        if any(keyword in question.lower() for keyword in blocked_keywords):
-            ai_response = "This question doesn't seem related to studies. Please ask about a study-related topic."
-        else:
-            model = genai.GenerativeModel("gemini-2.0-flash")
-            response = model.generate_content(study_prompt)
-            if response and response.text:
-                ai_response = markdown.markdown(response.text.strip())
-            else:
-                ai_response = "Error processing AI response."
-        if response and response.text:
-    
-            clean_text = response.text.strip()
-            ai_response = markdown.markdown(clean_text)
-
-
-            entry = CourseResource(
-                user_id=current_user.id,
-                course_id=int(selected_course) if selected_course else None,
-                question=question,
-                ai_response=clean_text,
-                created_at=datetime.utcnow()
-            )
-            db.session.add(entry)
+        if not current_chat:
+            current_chat = ResourceChat(user_id=current_user.id, title="New Chat")
+            db.session.add(current_chat)
             db.session.commit()
-        else:
-            ai_response = "Error processing AI response."    
-    
-    try:
-        headers = {"Authorization": f"Bearer {canvas_api_token}"}
-        res = requests.get(f"{canvas_api_url}/api/v1/courses", headers=headers)
-        
-        
-        if res.status_code == 200:
-            #"enrollments": course["enrollements"][0]["enrollment_state"]
-            canvas_courses = [
-                {"id": course["id"], "name": course["name"], "enrollments": course["enrollments"][0]["enrollment_state"]}
-                for course in res.json()
-                if not course.get("access_restricted_by_date")
-            ]
-            
-    except Exception as e:
-        print(f"Canvas API error: {e}")
 
-    return render_template("Resources.html", ai_response=ai_response, canvas_courses=canvas_courses)
+        previous_chats = (
+            CourseResource.query
+            .filter_by(user_id=current_user.id, chat_id=current_chat.id)
+            .order_by(CourseResource.created_at.desc())
+            .limit(5)
+            .all()
+        )
+
+        context = ""
+        for msg in reversed(previous_chats):
+            context += f"User: {msg.question}\nAI: {msg.ai_response}\n"
+
+        course_context = f"This question is related to the course: {selected_course}." if selected_course else ""
+        study_prompt = (
+            f"{course_context}\n"
+            f"Here is the previous conversation context:\n{context}\n"
+            f"Make sure the question is study-related and respond clearly.\n"
+            f"New Question: {question}"
+        )
+
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response = model.generate_content(study_prompt)
+        clean_text = response.text.strip()
+        
+        course_code_match = re.match(r"[A-Z]{3,4} \d{3}", selected_course)
+        course_code = course_code_match.group(0) if course_code_match else None
+        course_obj = Course.query.filter_by(course_code=course_code).first()
+        course_id = course_obj.course_code if course_obj else None
+
+
+        entry = CourseResource(
+            user_id=current_user.id,
+            chat_id=current_chat.id,
+            course_id=course_id,
+            question=question,
+            ai_response=clean_text,
+            created_at=datetime.utcnow()
+        )
+        db.session.add(entry)
+        db.session.commit()
+
+        messages.append(entry)
+        ai_response = markdown.markdown(clean_text)
+
+    chats = ResourceChat.query.filter_by(user_id=current_user.id).order_by(ResourceChat.created_at.desc()).all()
+
+    
+
+
+    return render_template("resources.html", ai_response=ai_response, canvas_courses=canvas_courses, chats=chats, messages=messages, current_chat=current_chat)
+
 
 
 @main_blueprint.route("/course_content", methods=["GET", "POST"])
@@ -332,7 +361,7 @@ def course_content():
         study_prompt = (
             f"Here is the student's previous context:\n{chat_context}\n"
             f"Ensure this is a study-related question. If it isn't, ask the user to rephrase. "
-            f"If it is, answer the question and tailor the response accordingly.\n"
+            f"If it is, answer the question and tailor the response accordingly. Also, Keep the response short\n"
             f"New Question: {question}"
         )
 
@@ -1156,3 +1185,19 @@ def canvas_assignments():
     return jsonify(assignment_list)
 
 
+@main_blueprint.route("/resources/chat/new", methods=["POST"])
+@login_required
+def new_resource_chat():
+    new_chat = ResourceChat(user_id=current_user.id, title="New Chat")
+    db.session.add(new_chat)
+    db.session.commit()
+    return redirect(url_for('main.resources', chat_id=new_chat.id))
+
+@main_blueprint.route("/resources/chat/<int:chat_id>/delete", methods=["POST"])
+@login_required
+def delete_resource_chat(chat_id):
+    chat = ResourceChat.query.filter_by(id=chat_id, user_id=current_user.id).first_or_404()
+    db.session.delete(chat)
+    db.session.commit()
+    flash("Chat deleted.")
+    return redirect(url_for("main.resources"))
