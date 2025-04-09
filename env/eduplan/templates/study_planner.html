@@ -156,14 +156,14 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
                 {{ add_form.csrf_token }}
                 <p id="event-add-info">
 
-                    {{ add_form.date.label }}
-                    {{ add_form.date }}
+                    
+                    {{ add_form.date(id="event-date") }}
 
                     {{ add_form.start_time.label }}
-                    {{ add_form.start_time }}
+                    {{ add_form.start_time(id="event-start-time") }}
 
                     {{ add_form.end_time.label }}
-                    {{ add_form.end_time }}
+                    {{ add_form.end_time(id="event-end-time") }}
 
                     {{ add_form.existing_events(id="old-events").label }}
                     {{ add_form.existing_events(id="old-events") }}
