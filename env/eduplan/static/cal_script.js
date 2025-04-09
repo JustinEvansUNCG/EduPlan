@@ -26,7 +26,7 @@ async function getAssignments() {
     await fetch('/canvas/assignments')
         .then(response => response.json())
         .then(data => {
-            // Use the data in your JavaScript code
+            // Parses the data, making it usable
             assignment_data = "[" + String(data) + "]";
             assignment_data = assignment_data.replaceAll("'", '"');
             assignment_json = JSON.parse(assignment_data);
@@ -41,14 +41,21 @@ async function getAssignments() {
     refreshAssignments();
 
 }
-getAssignments();
+waitOnAssignments();
+
+async function waitOnAssignments() {
+
+    await getAssignments();
+    manipulate();
+}
+
 
 async function refreshAssignments() {
     console.log("test");
     await fetch('/canvas/assignments/refresh')
         .then(response => response.json())
         .then(data => {
-            // Use the data in your JavaScript code
+            // Parses the data, making it usable
             assignment_data_temp = "[" + String(data) + "]";
             assignment_data_temp = assignment_data.replaceAll("'", '"');
             assignment_json_temp = JSON.parse(assignment_data);
@@ -66,18 +73,15 @@ async function refreshAssignments() {
 
 
 
-
+//Gets scheduled events from db
 async function getEvents() {
     await fetch('/api/event_times')
         .then(response => response.json())
         .then(data => {
-            // Use the data in your JavaScript code
+            // Parses the data, making it usable
             event_data = "[" + String(data) + "]";
             event_data = event_data.replaceAll("'", '"');
             event_json = JSON.parse(event_data);
-
-            //console.log(event_data);
-
 
         })
         .catch(error => {
@@ -90,16 +94,15 @@ getEvents();
 
 
 
-
+//gets events from db
 fetch('/api/events')
     .then(response => response.json())
     .then(data => {
-        // Use the data in your JavaScript code
+        // Parses the data, making it usable
         events = "[" + String(data) + "]";
         events = events.replaceAll("'", '"');
         user_events_json = JSON.parse(events);
 
-        //console.log(events);
 
     })
     .catch(error => {
@@ -107,7 +110,7 @@ fetch('/api/events')
     });
 
 
-
+//the global variables below keep track of important information needed in the calendar
 let currentDate = new Date();
 let date = new Date();
 let year = date.getFullYear();
@@ -123,7 +126,6 @@ const currdate = document
 const prenexIcons = document
     .querySelectorAll(".calendar-navigation span");
 
-// Array of month names
 const months = [
     "January",
     "February",
@@ -153,11 +155,9 @@ const days = [
 
 
 
-// Function to generate the calendar
+// Function that generates and modifies the calendar
 
 const manipulate = () => {
-
-    //await getEvents();
 
     // Get the first day of the month
     let dayone = new Date(year, month, 1).getDay();
@@ -177,6 +177,8 @@ const manipulate = () => {
     let lit = "";
 
     if (document.getElementById("month-button").classList.contains("selected")) {
+
+        //if statement removes the week view event scheduler when switching back to month view
         if (document.getElementById("week-background") !== null) {
             document.getElementById("week-background").remove();
         }
@@ -191,7 +193,8 @@ const manipulate = () => {
 
         // Loop to add the dates of the current month
         for (let i = 1; i <= lastdate; i++) {
-            console.log(year + "-" + month + "-" + i);
+            //console.log(year + "-" + month + "-" + i);
+            //creates a temp variable which holds the current date
             let temp = year + "-";
             if (month + 1 < 10) {
                 temp += "0" + (month + 1) + "-";
@@ -207,13 +210,13 @@ const manipulate = () => {
                 temp += i;
             }
 
-            // Check if the current date is today
+            // Check to see if the a day is the current date
             let isToday = i === date.getDate()
                 && month === new Date().getMonth()
                 && year === new Date().getFullYear()
                 ? "active"
                 : "";
-            lit += `<li class="${temp} ${isToday}">${i}</li>`;
+            lit += `<li class="${temp} ${isToday}">${i}<p class="assignment-count"></p></li>`;
         }
 
         // Loop to add the first dates of the next month
@@ -230,11 +233,12 @@ const manipulate = () => {
         day.innerHTML = lit;
 
 
-
+        //else statement below handles the week view
     } else {
+        //line below clears any old dates to make space for ones we are trying to view
         document.querySelector(".calendar-dates").innerHTML = "";
         let plan_id = [];
-
+        //if statement below removes the scheduler if it is currently generated
         if (document.getElementById("week-background") !== null) {
 
             document.getElementById("week-background").remove();
@@ -259,30 +263,24 @@ const manipulate = () => {
     
             `;
 
-
+        //appends the week display to the calendar
         document.querySelector(".calendar-dates").after(week_display);
 
 
+
+
+        //for loop below removes any old events that may remain from previous weeks
         let previous_events = document.getElementsByClassName("flex-event");
         const event_count = previous_events.length;
         for (let i = 0; i < event_count; i++) {
-            console.log("hello its me");
-
             previous_events[0].remove();
         }
 
 
-
-        //console.log(currentD);
-        //console.log(currentD.getDay());
-
-
-
-
-        console.log(week);
-
-
         let newdays = 0;
+
+        let flex_days = document.getElementsByClassName("flex-day");
+        let day_count = 0;
 
         //add the days of the current week from a previous month
         if (week < 1) {
@@ -290,13 +288,13 @@ const manipulate = () => {
             for (i; i <= monthlastdate; i++) {
                 newdays += 1;
                 // Check if the current date is today
-                //FIX BUG WITH CURRENT DAY HERE
                 let isToday = i === currentDate.getDate()
                     && (month) === new Date().getMonth()
                     && year === new Date().getFullYear()
                     ? "active"
                     : "";
 
+                //creates a temp variable which holds the current date
                 let temp = year + "-"// + (month) + "" + i;
 
                 if (month < 9) {
@@ -316,17 +314,39 @@ const manipulate = () => {
                 console.log(temp);
                 let the_date = new Date(year, month - 1, i).getDay();
                 console.log(days[the_date]);
+                flex_days[day_count].classList.add(temp);
+                day_count = day_count + 1;
+                console.log(flex_days[day_count - 1].classList);
 
 
 
-                //this needs to be implemented in the other 2 loops
+
+                //this loop will generate all events that need to be displayed on the scheduler from a previous month
                 for (let j = 0; j < Object.keys(event_json).length; j++) {
                     if (event_json[j]["date"] === temp) {
                         //lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
+
+
+                        //lines below are used to find the offset an object should have on the scheduler
+                        const end_hour = parseInt(event_json[j]["end_time"].substring(0, 2));
+                        const end_minutes = parseInt(event_json[j]["end_time"].substring(3, 5));
+
+                        const start_hour = parseInt(event_json[j]["start_time"].substring(0, 2));
+                        const start_minutes = parseInt(event_json[j]["start_time"].substring(3, 5));
+
+                        const time_offset = start_hour * 60 + start_minutes;
+
+                        const time_elapsed = (end_hour - start_hour) * 60 + end_minutes - start_minutes;
+
+                        console.log("minutes elapsed: " + time_elapsed);
+
                         const day_object = document.getElementById(days[the_date]);
                         let event_object = document.createElement("div");
                         event_object.classList.add("flex-event");
-                        event_object.innerHTML = `${event_json[j]["event_title"]}  <br> ${event_json[j]["start_time"]}-${event_json[j]["end_time"]}`;
+                        event_object.style.height = (time_elapsed - 5) + "px";
+                        event_object.style.marginTop = time_offset + "px";
+
+                        event_object.innerHTML = `${event_json[j]["event_title"]}  <br> <p class="time-data">${event_json[j]["start_time"]}-${event_json[j]["end_time"]}</p>`;
                         day_object.appendChild(event_object);
                         plan_id.push(event_json[j]["plan_id"])
 
@@ -335,10 +355,7 @@ const manipulate = () => {
                 }
 
 
-                lit += `<li class="${temp} ${isToday}">${i}</li>`;
-
-
-
+                lit += `<li class="${temp} ${isToday}">${i}<p class="assignment-count"></p></li>`;
 
             }
         }
@@ -373,20 +390,24 @@ const manipulate = () => {
                 else {
                     temp = temp + i;
                 }
-                
+
                 let the_date = new Date(year, month, i).getDay();
-                
+                flex_days[day_count].classList.add(temp);
+                day_count = day_count + 1;
+                console.log(flex_days[day_count - 1].classList);
 
 
 
 
 
 
-                //this needs to be implemented in the other 2 loops
+
+                //this loop will generate all events that need to be displayed on the scheduler
                 for (let j = 0; j < Object.keys(event_json).length; j++) {
                     if (event_json[j]["date"] === temp) {
                         //lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
 
+                        //lines below are used to find the offset an object should have on the scheduler
                         const end_hour = parseInt(event_json[j]["end_time"].substring(0, 2));
                         const end_minutes = parseInt(event_json[j]["end_time"].substring(3, 5));
 
@@ -405,7 +426,7 @@ const manipulate = () => {
                         event_object.style.height = (time_elapsed - 5) + "px";
                         event_object.style.marginTop = time_offset + "px";
 
-                        event_object.innerHTML = `${event_json[j]["event_title"]}  <br> ${event_json[j]["start_time"]}-${event_json[j]["end_time"]}`;
+                        event_object.innerHTML = `${event_json[j]["event_title"]}  <br> <p class="time-data">${event_json[j]["start_time"]}-${event_json[j]["end_time"]}</p>`;
                         day_object.appendChild(event_object);
                         plan_id.push(event_json[j]["plan_id"])
 
@@ -414,7 +435,7 @@ const manipulate = () => {
                 }
 
 
-                lit += `<li class="${temp} ${isToday}">${i}</li>`;
+                lit += `<li class="${temp} ${isToday}">${i}<p class="assignment-count"></p></li>`;
 
 
             }
@@ -431,7 +452,7 @@ const manipulate = () => {
                 ? "active"
                 : "";
 
-
+            //creates a temp variable which holds the current date
             let temp = year + "-"// + (month) + "" + i;
 
             if (month < 9) {
@@ -449,24 +470,40 @@ const manipulate = () => {
             }
             console.log(temp);
             let the_date = new Date(year, month + 1, i).getDay();
-            
+            flex_days[day_count].classList.add(temp);
+            day_count = day_count + 1;
+            console.log(flex_days[day_count - 1].classList);
 
 
 
 
 
-            //this needs to be implemented in the other 2 loops
+
+            //this loop will generate all events that need to be displayed on the scheduler from the next month
             for (let j = 0; j < Object.keys(event_json).length; j++) {
                 if (event_json[j]["date"] === temp) {
-                    //lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
-                    const time_elapsed = event_json[j]["end_time"].substring(0, 2);
-                    console.log(time_elapsed);
+                    //lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`
 
+                    //lines below are used to find the offset an object should have on the scheduler
+                    const end_hour = parseInt(event_json[j]["end_time"].substring(0, 2));
+                    const end_minutes = parseInt(event_json[j]["end_time"].substring(3, 5));
+
+                    const start_hour = parseInt(event_json[j]["start_time"].substring(0, 2));
+                    const start_minutes = parseInt(event_json[j]["start_time"].substring(3, 5));
+
+                    const time_offset = start_hour * 60 + start_minutes;
+
+                    const time_elapsed = (end_hour - start_hour) * 60 + end_minutes - start_minutes;
+
+                    console.log("minutes elapsed: " + time_elapsed);
 
                     const day_object = document.getElementById(days[the_date]);
                     let event_object = document.createElement("div");
                     event_object.classList.add("flex-event");
-                    event_object.innerHTML = `${event_json[j]["event_title"]}  <br> ${event_json[j]["start_time"]}-${event_json[j]["end_time"]}`;
+                    event_object.style.height = (time_elapsed - 5) + "px";
+                    event_object.style.marginTop = time_offset + "px";
+
+                    event_object.innerHTML = `${event_json[j]["event_title"]}  <br> <p class="time-data">${event_json[j]["start_time"]}-${event_json[j]["end_time"]}</p>`;
                     day_object.appendChild(event_object);
                     plan_id.push(event_json[j]["plan_id"])
                 }
@@ -474,7 +511,7 @@ const manipulate = () => {
             }
 
 
-            lit += `<li class="${temp} ${isToday}">${i}</li>`;
+            lit += `<li class="${temp} ${isToday}">${i}<p class="assignment-count"></p></li>`;
 
 
 
@@ -484,11 +521,11 @@ const manipulate = () => {
         day.innerHTML = lit;
 
         const event_objects = document.querySelectorAll(".flex-event");
-        
+
         let testnum = 0;
         for (let i = 0; i < event_objects.length; i++) {
 
-            
+
             let event_object = document.querySelectorAll(".flex-event")[i];
 
             //event_object.addEventListener("click", check_events);
@@ -590,6 +627,76 @@ const manipulate = () => {
                 modal.querySelector("h2").innerHTML = days[i];
                 modal.style.display = "block";
 
+                //let temp_date = new Date(day_blocks[i].classList[1]).toISOString();
+                let temp_date = day_blocks[i].classList[1];
+                console.log(temp_date);
+                date_field = document.getElementById("event-date");
+                date_field.value = temp_date;
+                console.log(date_field);
+
+                start_time_field = document.getElementById("event-start-time");
+                end_time_field = document.getElementById("event-end-time");
+                end_time_field.addEventListener("blur", time_validity_check);
+                start_time_field.addEventListener("blur", time_validity_check);
+
+                function time_validity_check(event) {
+                    const end_time = end_time_field.value;
+                    const start_time = start_time_field.value;
+                    console.log(typeof end_time);
+                    console.log(start_time);
+
+                    if (start_time > end_time) {
+                        end_time_field.value = '';
+                    }
+                    const other_events_today = day_blocks[i].querySelectorAll(".flex-event");
+                    for (let j = 0; j < other_events_today.length; j++) {
+                        console.log(other_events_today[j].querySelector(".time-data"));
+                        let event_date_data = other_events_today[j].querySelector(".time-data").innerHTML;
+                        const event_date_array = event_date_data.split("-");
+                        event_date_array[0] = event_date_array[0].substring(0, 5);
+                        event_date_array[1] = event_date_array[1].substring(0, 5);
+
+                        const event_date_start = event_date_array[0].split(":");
+                        const event_date_end = event_date_array[1].split(":");
+
+                        console.log(event_date_start[1] - 1);
+
+
+                        console.log(event_date_array[1]);
+                        if (event_date_array[0] <= start_time && event_date_array[1] >= start_time) {
+                            let start_time_revised;
+                            if (event_date_end[1] != "59") {
+                                start_time_revised = event_date_end[0] + ":" + String(parseInt(event_date_end[1]) + 1);
+                            } else {
+                                start_time_revised = (event_date_end[0] + 1) + ":00";
+                            }
+                            //console.log(start_time_revised);
+                            start_time_field.value = start_time_revised;
+
+                        }
+
+
+                        if (event_date_array[0] > start_time && event_date_array[1] < end_time || event_date_array[0] <= end_time && event_date_array[1] >= end_time) {
+                            let end_time_revised;
+                            if (event_date_start[1] != "00") {
+                                end_time_revised = event_date_start[0] + ":" + (event_date_start[1] - 1);
+                            } else {
+                                end_time_revised = (event_date_start[0] - 1) + ":59";
+                            }
+
+                            end_time_field.value = end_time_revised;
+
+                        }
+
+                    }
+
+                    console.log(day_blocks[i]);
+
+
+                }
+
+
+
 
                 var event_type = document.getElementById("event_creation_type");
                 event_type.value = 0;
@@ -605,7 +712,7 @@ const manipulate = () => {
                     document.getElementById("new-event-deactivate").style.display = "block";
                     event_type.value = 1;
                     console.log("foo");
-                    
+
 
 
                 }
@@ -620,7 +727,7 @@ const manipulate = () => {
                     document.getElementById("new-event-deactivate").style.display = "none";
                     document.getElementById("new-event-activate").style.display = "block";
                     event_type.value = 0;
-                    
+
 
 
 
@@ -638,6 +745,7 @@ const manipulate = () => {
                     event.preventDefault();
 
                     const form_info = new FormData(add_form);
+                    //console.log(form_info.Date);
 
                     let day_date = document.querySelectorAll("li");
 
@@ -655,7 +763,6 @@ const manipulate = () => {
                         close_modals();
                         manipulate();
                         for (let i = 0; i < day_blocks.length; i++) {
-                            console.log("hellelelelele");
                             day_blocks[i].removeEventListener("dblclick", event_creation);
                         }
                         add_form.removeEventListener("submit", add_event);
@@ -764,9 +871,27 @@ const manipulate = () => {
         })*/
 
     }
+
+    for (let i = 0; i < Object.keys(assignment_json).length; i++) {
+        let temp_date = assignment_json[i]["due_at"].substring(0, 10);
+        
+        if (document.getElementsByClassName(temp_date).length !== 0) {
+            let day_item = document.getElementsByClassName(temp_date)[0];
+            let assignment_count = day_item.querySelector(".assignment-count").innerHTML;
+            if (assignment_count.length != 0) {
+                assignment_count = parseInt(assignment_count);
+            } else {
+                assignment_count = 0;
+            }
+            assignment_count += 1;
+            day_item.querySelector(".assignment-count").innerHTML = String(assignment_count);
+        }
+
+    }
+
 }
 
-manipulate();
+
 
 // Attach a click event listener to each icon
 prenexIcons.forEach(icon => {
@@ -1021,3 +1146,4 @@ function day_view(all_days, i) {
 
 
 }
+
