@@ -234,17 +234,14 @@ def resources():
     ai_response = None
     canvas_courses = []
     current_chat = None
-    messages = []
 
     if chat_id:
         current_chat = ResourceChat.query.filter_by(id=chat_id, user_id=current_user.id).first()
-        if current_chat:
-            messages = CourseResource.query.filter_by(chat_id=current_chat.id).order_by(CourseResource.created_at).all()
+
     try:
         headers = {"Authorization": f"Bearer {canvas_api_token}"}
         params = {"include[]": "enrollments"}
         res = requests.get(f"{canvas_api_url}/api/v1/courses", headers=headers, params=params)
-
         if res.status_code == 200:
             canvas_courses = [
                 {
@@ -294,12 +291,11 @@ def resources():
         model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(study_prompt)
         clean_text = response.text.strip()
-        
+
         course_code_match = re.match(r"[A-Z]{3,4} \d{3}", selected_course)
         course_code = course_code_match.group(0) if course_code_match else None
         course_obj = Course.query.filter_by(course_code=course_code).first()
         course_id = course_obj.course_code if course_obj else None
-
 
         entry = CourseResource(
             user_id=current_user.id,
@@ -312,13 +308,12 @@ def resources():
         db.session.add(entry)
         db.session.commit()
 
-        messages.append(entry)
-        ai_response = markdown.markdown(clean_text)
+        return redirect(url_for('main.resources', chat_id=current_chat.id))
 
     chats = ResourceChat.query.filter_by(user_id=current_user.id).order_by(ResourceChat.created_at.desc()).all()
-
-    
-
+    messages = []
+    if current_chat:
+        messages = CourseResource.query.filter_by(chat_id=current_chat.id).order_by(CourseResource.created_at).all()
 
     return render_template("resources.html", ai_response=ai_response, canvas_courses=canvas_courses, chats=chats, messages=messages, current_chat=current_chat)
 
