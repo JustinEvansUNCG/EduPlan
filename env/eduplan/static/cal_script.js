@@ -536,7 +536,7 @@ const manipulate = () => {
         //retrieves all events
         const event_objects = document.querySelectorAll(".flex-event");
 
-        
+        const day_blocks = document.querySelectorAll(".flex-day");
         //Loop below allows events to be modified
         for (let i = 0; i < event_objects.length; i++) {
 
@@ -556,7 +556,71 @@ const manipulate = () => {
                 event_info.innerHTML = event_object.innerHTML;
 
 
+                start_time_field = document.getElementById("modify-start-time");
+                end_time_field = document.getElementById("modify-end-time");
+                end_time_field.addEventListener("blur", time_validity_check);
+                start_time_field.addEventListener("blur", time_validity_check);
 
+                let temp_date = event_object.parentElement.classList[1];
+                console.log(temp_date);
+                date_field = document.getElementById("modify-date");
+                date_field.value = temp_date;
+
+                function time_validity_check(event) {
+                    const end_time = end_time_field.value;
+                    const start_time = start_time_field.value;
+                    console.log(typeof end_time);
+                    console.log(start_time);
+
+                    if (start_time > end_time) {
+                        end_time_field.value = '';
+                    }
+                    const other_events_today = event_object.parentElement.querySelectorAll(".flex-event");;
+                    for (let j = 0; j < other_events_today.length; j++) {
+                        console.log(other_events_today[j].querySelector(".time-data"));
+                        let event_date_data = other_events_today[j].querySelector(".time-data").innerHTML;
+                        const event_date_array = event_date_data.split("-");
+                        event_date_array[0] = event_date_array[0].substring(0, 5);
+                        event_date_array[1] = event_date_array[1].substring(0, 5);
+
+                        const event_date_start = event_date_array[0].split(":");
+                        const event_date_end = event_date_array[1].split(":");
+
+                        console.log(event_date_start[1] - 1);
+
+
+                        console.log(event_date_array[1]);
+                        if (event_date_array[0] <= start_time && event_date_array[1] >= start_time) {
+                            let start_time_revised;
+                            if (event_date_end[1] != "59") {
+                                start_time_revised = event_date_end[0] + ":" + String(parseInt(event_date_end[1]) + 1);
+                            } else {
+                                start_time_revised = (event_date_end[0] + 1) + ":00";
+                            }
+                            //console.log(start_time_revised);
+                            start_time_field.value = start_time_revised;
+
+                        }
+
+
+                        if (event_date_array[0] > start_time && event_date_array[1] < end_time || event_date_array[0] <= end_time && event_date_array[1] >= end_time) {
+                            let end_time_revised;
+                            if (event_date_start[1] != "00") {
+                                end_time_revised = event_date_start[0] + ":" + (event_date_start[1] - 1);
+                            } else {
+                                end_time_revised = (event_date_start[0] - 1) + ":59";
+                            }
+
+                            end_time_field.value = end_time_revised;
+
+                        }
+
+                    }
+
+                    
+
+
+                }
 
 
 
@@ -629,7 +693,7 @@ const manipulate = () => {
 
         }
 
-        const day_blocks = document.querySelectorAll(".flex-day");
+        //const day_blocks = document.querySelectorAll(".flex-day");
 
         console.log(day_blocks.length);
 
