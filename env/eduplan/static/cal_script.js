@@ -710,6 +710,7 @@ const manipulate = () => {
                     document.getElementById("old-events").style.display = "none";
                     document.getElementById("new-event-activate").style.display = "none";
                     document.getElementById("new-event-deactivate").style.display = "block";
+                    document.getElementById("existing-events").style.display = "none";
                     event_type.value = 1;
                     console.log("foo");
 
@@ -726,6 +727,7 @@ const manipulate = () => {
                     document.getElementById("old-events").style.display = "block";
                     document.getElementById("new-event-deactivate").style.display = "none";
                     document.getElementById("new-event-activate").style.display = "block";
+                    document.getElementById("existing-events").style.display = "block";
                     event_type.value = 0;
 
 
