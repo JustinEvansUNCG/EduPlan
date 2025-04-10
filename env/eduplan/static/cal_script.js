@@ -817,7 +817,10 @@ const manipulate = () => {
     all_days = document.querySelectorAll("li");
     for (let i = 0; i < all_days.length; i++) {
 
-        if (all_days[i].classList[0] !== "inactive") {
+        let day_id = parseInt(all_days[i].classList[0]);
+
+
+        if (all_days[i].classList[0] !== "inactive" && day_id) {
 
             all_days[i].addEventListener("click", () => {
                 day_view(all_days, i);

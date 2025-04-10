@@ -209,7 +209,7 @@ def sign_up():
         db.session.add(user)
         db.session.commit()
 
-        session["user_id"] = user.id
+        session["user_id"] = user.id # This is needed to keep track of who is signed in
 
         login_user(user)  # ✅ Keep user logged in after sign-up
         flash('Your account has been created and you are now logged in.', 'success')
