@@ -164,14 +164,16 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
                     {{ add_form.end_time.label }}
                     {{ add_form.end_time(id="event-end-time") }}
+                </p>
 
-                    {{ add_form.existing_events(id="old-events").label }}
+                <p id="existing-events">
+                    {{ add_form.existing_events.label }}
                     {{ add_form.existing_events(id="old-events") }}
-
+                </p>
 
                     {{ add_form.event_creation_type(id="event_creation_type") }}
 
-                </p>
+                
 
 
                 <p id="new-event-info">
