@@ -322,22 +322,43 @@ def resources():
 
     return render_template("resources.html", ai_response=ai_response, canvas_courses=canvas_courses, chats=chats, messages=messages, current_chat=current_chat)
 
+@main_blueprint.route("/resources/chat/<int:chat_id>/rename", methods=["POST"])
+@login_required
+def rename_resource_chat(chat_id):
+    new_title = request.form.get("new_title", "").strip()
+    chat = ResourceChat.query.filter_by(id=chat_id, user_id=current_user.id).first_or_404()
+
+    if new_title:
+        chat.title = new_title
+        db.session.commit()
+        flash("Chat renamed successfully.", "success")
+    else:
+        flash("Please provide a valid title.", "warning")
+
+    return redirect(url_for("main.resources", chat_id=chat_id))
+
 
 
 @main_blueprint.route("/course_content", methods=["GET", "POST"])
 @login_required
 def course_content():
     ai_response = None
-
-    #Transcript submission form
     transcript_form = TranscriptForm()
+
+    csc_courses = (
+        Course.query
+        .filter(Course.course_code.startswith("PSY"))
+        .order_by(Course.course_code)
+        .all()
+    )
+    course_list = [f"{course.course_code} - {course.course_name}" for course in csc_courses]
+    course_context = "\n".join(course_list)
 
     if request.method == "POST":
         question = request.form.get("question", "").strip()
         if not question:
             question = "Explain a general study tip."
 
-        # Filter context from last 24 hours
         one_day_ago = datetime.utcnow() - timedelta(days=1)
         previous_chats = (
             CourseContentAssistance.query
@@ -348,45 +369,38 @@ def course_content():
             .all()
         )
 
-        # Build context from previous messages
         chat_context = ""
         for chat in reversed(previous_chats):
             chat_context += f"User: {chat.question}\nAI: {chat.ai_response}\n"
 
-        # Fetch and format transcript
         transcript = (
             ClassStatus.query
             .filter(ClassStatus.user_id == current_user.id)
             .order_by(ClassStatus.course_code.asc())
             .all()
         )
+
         transcript_context_lines = []
         for i, course in enumerate(transcript, start=1):
             if course.completed:
-                transcript_context_lines.append(f"{i}. {course.course_code} - Grade: {course.grade} (Completed)")
+                transcript_context_lines.append(
+                    f"{i}. {course.course_code} - Grade: {course.grade} (Completed)"
+                )
             else:
                 credits = f"{course.credits} credits" if course.credits else "Credits unknown"
-                transcript_context_lines.append(f"{i}. {course.course_code} - In Progress ({credits})")
+                transcript_context_lines.append(
+                    f"{i}. {course.course_code} - Required: Not Yet Taken ({credits})"
+                )
+
         transcript_context = "\n".join(transcript_context_lines)
 
-        # Fetch CSC courses
-        csc_courses = (
-            Course.query
-            .filter(Course.course_code.like("CSC %"))
-            .order_by(Course.course_code.asc())
-            .all()
-        )
-        csc_course_list = "\n".join([f"- {c.course_code}: {c.course_name}" for c in csc_courses])
-
-        # Final prompt with everything
         study_prompt = (
+            f"The student is majoring in psychology.\n\n"
+            f"Here are the psychology courses available:\n{course_context}\n\n"
             f"Here is the student's academic transcript:\n{transcript_context}\n\n"
-            f"Here is the student's previous question context:\n{chat_context}\n\n"
-            f"Here is a list of all Computer Science (CSC) courses offered:\n{csc_course_list}\n\n"
-            f"This student is majoring in Computer Science. "
-            f"Ensure this is a study-related question. If it isn't, ask the user to rephrase. "
-            f"If it is, answer the question and tailor the response accordingly. Keep the response short. "
-            f"Do not say anything about it being a study-related question, just answer.\n"
+            f"Here is the student's previous conversation context:\n{chat_context}\n"
+            f"Ensure the question is study-related. If it is not, ask the user to rephrase. "
+            f"If it is, answer it clearly and concisely.\n"
             f"New Question: {question}"
         )
 
@@ -395,21 +409,30 @@ def course_content():
             ai_response = "This question doesn't seem related to studies. Please ask about a study-related topic."
         else:
             model = genai.GenerativeModel("gemini-2.0-flash")
-            response = model.generate_content(study_prompt)
-            if response and response.text:
-                clean_text = response.text.strip()
-                ai_response = markdown.markdown(clean_text)
-                entry = CourseContentAssistance(
-                    user_id=current_user.id,
-                    question=question,
-                    ai_response=clean_text
-                )
-                db.session.add(entry)
-                db.session.commit()
-            else:
-                ai_response = "Error processing AI response."
+            try:
+                response = model.generate_content(study_prompt)
+                if response and response.text:
+                    clean_text = response.text.strip()
+                    ai_response = markdown.markdown(clean_text)
 
-    return render_template("course_content.html", ai_response=ai_response, transcript_form=transcript_form)
+                    entry = CourseContentAssistance(
+                        user_id=current_user.id,
+                        question=question,
+                        ai_response=clean_text
+                    )
+                    db.session.add(entry)
+                    db.session.commit()
+                else:
+                    ai_response = "Error processing AI response."
+            except Exception as e:
+                ai_response = f"Gemini API error: {str(e)}"
+
+    return render_template(
+        "course_content.html",
+        ai_response=ai_response,
+        transcript_form=transcript_form
+    )
+
 
 
 
