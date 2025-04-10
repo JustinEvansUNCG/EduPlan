@@ -491,6 +491,7 @@ const manipulate = () => {
                     const start_hour = parseInt(event_json[j]["start_time"].substring(0, 2));
                     const start_minutes = parseInt(event_json[j]["start_time"].substring(3, 5));
 
+                    //the pixel
                     const time_offset = start_hour * 60 + start_minutes;
 
                     const time_elapsed = (end_hour - start_hour) * 60 + end_minutes - start_minutes;

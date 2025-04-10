@@ -81,6 +81,10 @@ def index():
 @main_blueprint.route("/study_planner", methods=["GET", "POST"])
 @login_required
 def study_planner():
+    print(session["user_id"])
+    print(session["user_id"])
+    print(session["user_id"])
+    print(session["user_id"])
     form = EventDeleteForm(request.form)
 
     add_form = EventAddForm(request.form)
@@ -204,6 +208,8 @@ def sign_up():
         )
         db.session.add(user)
         db.session.commit()
+
+        session["user_id"] = user.id
 
         login_user(user)  # ✅ Keep user logged in after sign-up
         flash('Your account has been created and you are now logged in.', 'success')
@@ -1059,12 +1065,16 @@ def regenerate_canvas_token():
 @main_blueprint.route('/canvas/assignments/refresh')
 @login_required
 def canvas_assignments_refresh():
+    print(session["user_id"])
+    print(session["user_id"])
+
     token = current_user.canvas_token
     if not token:
        
         flash("You need to connect your Canvas account first.", "warning")
         #return redirect(url_for('main.connect_canvas'))
         return jsonify([])
+    
     
     db.session.query(assignments).filter_by(user_id=session['user_id']).delete()
     db.session.commit()
