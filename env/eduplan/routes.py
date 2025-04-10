@@ -4,7 +4,7 @@ from eduplan import bcrypt
 from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, TranscriptForm, CourseCatalogUploadForm, EditCourseForm, CanvasTokenForm
 
 from eduplan import db
-from eduplan.models import study_time, study_event, User, CourseContentAssistance, ClassStatus,CourseResource, assignments, ResourceChat
+from eduplan.models import study_time, study_event, User, CourseContentAssistance, ClassStatus,CourseResource, assignments, ResourceChat, FavoriteCourse
 from flask_bcrypt import Bcrypt
 import google.generativeai as genai
 import re
@@ -25,6 +25,8 @@ import requests
 from datetime import datetime, timezone, timedelta
 from cryptography.fernet import Fernet
 from math import ceil
+from sqlalchemy import or_
+
 
 import filetype
 
@@ -187,7 +189,7 @@ def sign_up():
             name=form.name.data,
             email=form.email.data,
             password_hash=hash_password,
-            role='student'
+            role='admin'
         )
         db.session.add(user)
         db.session.commit()
@@ -234,17 +236,14 @@ def resources():
     ai_response = None
     canvas_courses = []
     current_chat = None
-    messages = []
 
     if chat_id:
         current_chat = ResourceChat.query.filter_by(id=chat_id, user_id=current_user.id).first()
-        if current_chat:
-            messages = CourseResource.query.filter_by(chat_id=current_chat.id).order_by(CourseResource.created_at).all()
+
     try:
         headers = {"Authorization": f"Bearer {canvas_api_token}"}
         params = {"include[]": "enrollments"}
         res = requests.get(f"{canvas_api_url}/api/v1/courses", headers=headers, params=params)
-
         if res.status_code == 200:
             canvas_courses = [
                 {
@@ -294,12 +293,11 @@ def resources():
         model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(study_prompt)
         clean_text = response.text.strip()
-        
+
         course_code_match = re.match(r"[A-Z]{3,4} \d{3}", selected_course)
         course_code = course_code_match.group(0) if course_code_match else None
         course_obj = Course.query.filter_by(course_code=course_code).first()
         course_id = course_obj.course_code if course_obj else None
-
 
         entry = CourseResource(
             user_id=current_user.id,
@@ -312,34 +310,58 @@ def resources():
         db.session.add(entry)
         db.session.commit()
 
-        messages.append(entry)
-        ai_response = markdown.markdown(clean_text)
+        return redirect(url_for('main.resources', chat_id=current_chat.id))
 
     chats = ResourceChat.query.filter_by(user_id=current_user.id).order_by(ResourceChat.created_at.desc()).all()
-
-    
-
+    messages = []
+    if current_chat:
+        messages = CourseResource.query.filter_by(chat_id=current_chat.id).order_by(CourseResource.created_at).all()
 
     return render_template("resources.html", ai_response=ai_response, canvas_courses=canvas_courses, chats=chats, messages=messages, current_chat=current_chat)
+
+@main_blueprint.route("/resources/chat/<int:chat_id>/rename", methods=["POST"])
+@login_required
+def rename_resource_chat(chat_id):
+    new_title = request.form.get("new_title", "").strip()
+    chat = ResourceChat.query.filter_by(id=chat_id, user_id=current_user.id).first_or_404()
+
+    if new_title:
+        chat.title = new_title
+        db.session.commit()
+        flash("Chat renamed successfully.", "success")
+    else:
+        flash("Please provide a valid title.", "warning")
+
+    return redirect(url_for("main.resources", chat_id=chat_id))
 
 
 
 @main_blueprint.route("/course_content", methods=["GET", "POST"])
 @login_required
 def course_content():
+    from .models import Course
     ai_response = None
-
-    #Transcript submission form
     transcript_form = TranscriptForm()
+
+    csc_courses = (
+        Course.query
+        .filter(Course.course_code.startswith("PSY"))
+        .order_by(Course.course_code)
+        .all()
+    )
+    course_list = [f"{course.course_code} - {course.course_name}" for course in csc_courses]
+    course_context = "\n".join(course_list)
 
     if request.method == "POST":
         question = request.form.get("question", "").strip()
         if not question:
             question = "Explain a general study tip."
 
+        one_day_ago = datetime.utcnow() - timedelta(days=1)
         previous_chats = (
             CourseContentAssistance.query
             .filter_by(user_id=current_user.id)
+            .filter(CourseContentAssistance.created_at >= one_day_ago)
             .order_by(CourseContentAssistance.created_at.desc())
             .limit(5)
             .all()
@@ -348,11 +370,35 @@ def course_content():
         chat_context = ""
         for chat in reversed(previous_chats):
             chat_context += f"User: {chat.question}\nAI: {chat.ai_response}\n"
-        print(chat_context)
+
+        transcript = (
+            ClassStatus.query
+            .filter(ClassStatus.user_id == current_user.id)
+            .order_by(ClassStatus.course_code.asc())
+            .all()
+        )
+
+        transcript_context_lines = []
+        for i, course in enumerate(transcript, start=1):
+            if course.completed:
+                transcript_context_lines.append(
+                    f"{i}. {course.course_code} - Grade: {course.grade} (Completed)"
+                )
+            else:
+                credits = f"{course.credits} credits" if course.credits else "Credits unknown"
+                transcript_context_lines.append(
+                    f"{i}. {course.course_code} - Required: Not Yet Taken ({credits})"
+                )
+
+        transcript_context = "\n".join(transcript_context_lines)
+
         study_prompt = (
-            f"Here is the student's previous context:\n{chat_context}\n"
-            f"Ensure this is a study-related question. If it isn't, ask the user to rephrase. "
-            f"If it is, answer the question and tailor the response accordingly. Also, Keep the response short\n"
+            f"The student is majoring in psychology.\n\n"
+            f"Here are the psychology courses available:\n{course_context}\n\n"
+            f"Here is the student's academic transcript:\n{transcript_context}\n\n"
+            f"Here is the student's previous conversation context:\n{chat_context}\n"
+            f"Ensure the question is study-related. If it is not, ask the user to rephrase. "
+            f"If it is, answer it clearly and concisely.\n"
             f"New Question: {question}"
         )
 
@@ -361,21 +407,30 @@ def course_content():
             ai_response = "This question doesn't seem related to studies. Please ask about a study-related topic."
         else:
             model = genai.GenerativeModel("gemini-2.0-flash")
-            response = model.generate_content(study_prompt)
-            if response and response.text:
-                clean_text = response.text.strip()
-                ai_response = markdown.markdown(clean_text)
-                entry = CourseContentAssistance(
-                    user_id=current_user.id,
-                    question=question,
-                    ai_response=clean_text
-                )
-                db.session.add(entry)
-                db.session.commit()
-            else:
-                ai_response = "Error processing AI response."
+            try:
+                response = model.generate_content(study_prompt)
+                if response and response.text:
+                    clean_text = response.text.strip()
+                    ai_response = markdown.markdown(clean_text)
 
-    return render_template("course_content.html", ai_response=ai_response, transcript_form=transcript_form)
+                    entry = CourseContentAssistance(
+                        user_id=current_user.id,
+                        question=question,
+                        ai_response=clean_text
+                    )
+                    db.session.add(entry)
+                    db.session.commit()
+                else:
+                    ai_response = "Error processing AI response."
+            except Exception as e:
+                ai_response = f"Gemini API error: {str(e)}"
+
+    return render_template(
+        "course_content.html",
+        ai_response=ai_response,
+        transcript_form=transcript_form
+    )
+
 
 
 
@@ -388,7 +443,8 @@ def transcript_reader():
     transcript_form = TranscriptForm(request.form)
 
 
-    file = request.files["file"]
+    file = request.files['file']
+
     print(os.path.isdir(current_app.config['UPLOAD_FOLDER']))
     print(current_app.config['UPLOAD_FOLDER'])
 
@@ -1173,6 +1229,7 @@ def new_resource_chat():
     db.session.commit()
     return redirect(url_for('main.resources', chat_id=new_chat.id))
 
+
 @main_blueprint.route("/resources/chat/<int:chat_id>/delete", methods=["POST"])
 @login_required
 def delete_resource_chat(chat_id):
@@ -1181,3 +1238,58 @@ def delete_resource_chat(chat_id):
     db.session.commit()
     flash("Chat deleted.")
     return redirect(url_for("main.resources"))
+
+@main_blueprint.route('/favorite_course', methods=['POST'])
+@login_required
+def favorite_course():
+    course_id = request.form.get('course_id')
+    semester = request.form.get('semester')
+
+    existing = FavoriteCourse.query.filter_by(user_id=current_user.id, course_id=course_id).first()
+    if not existing:
+        fav = FavoriteCourse(user_id=current_user.id, course_id=course_id, semester=semester)
+        db.session.add(fav)
+        db.session.commit()
+        flash('Course added to favorites!', 'success')
+    else:
+        flash('Course already favorited.', 'info')
+
+    return redirect(request.referrer or url_for('main.profile'))
+
+@main_blueprint.route('/unfavorite_course/<int:course_id>', methods=['POST'])
+@login_required
+def unfavorite_course(course_id):
+    fav = FavoriteCourse.query.filter_by(user_id=current_user.id, course_id=course_id).first()
+    if fav:
+        db.session.delete(fav)
+        db.session.commit()
+        flash("Course removed from favorites.", "info")
+    else:
+        flash("Course not found in your favorites.", "warning")
+    return redirect(request.referrer or url_for('main.profile'))
+
+
+@main_blueprint.route('/browse_courses', methods=['GET'])
+@login_required
+def browse_courses():
+    from .models import Course
+
+    search_query = request.args.get('search', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = 100
+
+    if search_query:
+        search_pattern = f"%{search_query}%"
+        filters = or_(
+            Course.course_name.ilike(search_pattern),
+            Course.course_code.ilike(search_pattern),
+            Course.department.ilike(search_pattern)
+        )
+        
+        pagination = Course.query.filter(filters).paginate(page=page, per_page=per_page, error_out=False)
+    else:
+        pagination = Course.query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    courses = pagination.items
+
+    return render_template("browse_courses.html", courses=courses, pagination=pagination)

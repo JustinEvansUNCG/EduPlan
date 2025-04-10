@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Profile{% endblock %}
+
 {% block head %}
 {{ super() }}
 <link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
-
 {% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <h2>Your Profile</h2>
@@ -12,88 +13,120 @@
     <p><strong>Email:</strong> {{ user.email }}</p>
 
     {% if user.role != 'admin' %}
-<hr>
-<h4>Upload Transcript</h4>
 
-<div class="flex-pair">
-    <div class="auth-box transcript-instructions">
-        <h2 onclick="toggleSection('transcriptHowTo')" style="cursor: pointer;">📄 How to Download Your Unofficial Transcript ⬇</h2>
-        <div id="transcriptHowTo" class="collapsible-section" style="display: none;">
-            <ol>
-                <li>Log in to DegreeWorks.</li>
-                <li>Go to the <strong>“Worksheets”</strong> tab.</li>
-                <li>Click <strong>“Create PDF”</strong>.</li>
-                <li>Open the Print menu (<kbd>Ctrl+P</kbd> / <kbd>Cmd+P</kbd>).</li>
-                <li>Set to <strong>“Save as PDF”</strong> and click <strong>Save</strong>.</li>
-            </ol>
-            <p><strong>Note:</strong> Download separate transcripts if you are a double major.</p>
+    <!-- SECTION 1: Integrations -->
+    <div class="section-card">
+        <h3>My Integrations</h3>
+
+        <!-- Upload Transcript -->
+        <h4>Upload Transcript</h4>
+        <div class="flex-pair">
+            <div class="auth-box transcript-instructions">
+                <h2 onclick="toggleSection('transcriptHowTo')">📄 How to Download Your Unofficial Transcript ⬇</h2>
+                <div id="transcriptHowTo" class="collapsible-section" style="max-height: 0;">
+                    <ol>
+                        <li>Log in to DegreeWorks.</li>
+                        <li>Go to the <strong>“Worksheets”</strong> tab.</li>
+                        <li>Click <strong>“Create PDF”</strong>.</li>
+                        <li>Open the Print menu (<kbd>Ctrl+P</kbd> / <kbd>Cmd+P</kbd>).</li>
+                        <li>Set to <strong>“Save as PDF”</strong> and click <strong>Save</strong>.</li>
+                    </ol>
+                    <p><strong>Note:</strong> Download separate transcripts if you are a double major.</p>
+                </div>
+            </div>
+            <section>
+                <form method="POST" action="{{ url_for('main.transcript_reader') }}" enctype="multipart/form-data" class="upload-box">
+                    <input type="file" name="transcript" class="form-control mb-2" required>
+                    <button type="submit" class="btn btn-secondary">Upload</button>
+                </form>
+            </section>
+        </div>
+
+        <hr>
+
+        <!-- Canvas Token -->
+        <h4>Canvas Access Token</h4>
+        {% if message %}
+        <div class="success-message">{{ message }}</div>
+        {% endif %}
+        <div class="flex-pair">
+            <div class="auth-box transcript-instructions">
+                <h2 onclick="toggleSection('canvasHowTo')">🔑 How to Generate a Canvas Token ⬇</h2>
+                <div id="canvasHowTo" class="collapsible-section" style="max-height: 0;">
+                    <ol>
+                        <li>Go to <a href="https://uncg.instructure.com" target="_blank">uncg.instructure.com</a></li>
+                        <li>Click <strong>Account</strong> → <strong>Settings</strong></li>
+                        <li>Find <strong>Approved Integrations</strong></li>
+                        <li>Click <strong>+ New Access Token</strong></li>
+                        <li>Fill in:
+                            <ul>
+                                <li><strong>Purpose:</strong> <code>EduPlan Integration</code></li>
+                                <li><strong>Expiration Date:</strong> <code>2025-05-02</code></li>
+                            </ul>
+                        </li>
+                        <li>Click <strong>Generate Token</strong> and paste it below</li>
+                    </ol>
+                </div>
+            </div>
+            <section>
+                <form method="POST" class="upload-box">
+                    {{ form.hidden_tag() }}
+                    <label for="token">{{ form.token.label }}</label><br>
+                    {{ form.token(class="form-control") }}<br><br>
+                    {{ form.submit(class="btn-primary") }}
+                </form>
+            </section>
         </div>
     </div>
-    <section>
-        <form method="POST" action="{{ url_for('main.transcript_reader') }}" enctype="multipart/form-data" class="upload-box">
-            <input type="file" name="transcript" class="form-control mb-2" required>
-            <button type="submit" class="btn btn-secondary">Upload</button>
-        </form>
-    </section>
-</div>
 
-<hr>
-<h4>Canvas Access Token</h4>
-{% if message %}
-<div class="success-message">{{ message }}</div>
-{% endif %}
-<div class="flex-pair">
-    <div class="auth-box transcript-instructions">
-        <h2 onclick="toggleSection('canvasHowTo')" style="cursor: pointer;">🔑 How to Generate a Canvas Token ⬇</h2>
-        <div id="canvasHowTo" class="collapsible-section" style="display: none;">
-            <ol>
-                <li>Go to <a href="https://uncg.instructure.com" target="_blank">uncg.instructure.com</a></li>
-                <li>Click <strong>Account</strong> → <strong>Settings</strong></li>
-                <li>Find <strong>Approved Integrations</strong></li>
-                <li>Click <strong>+ New Access Token</strong></li>
-                <li>Fill in:
-                    <ul>
-                        <li><strong>Purpose:</strong> <code>EduPlan Integration</code></li>
-                        <li><strong>Expiration Date:</strong> <code>2025-05-02</code></li>
-                    </ul>
-                </li>
-                <li>Click <strong>Generate Token</strong> and paste it below</li>
-            </ol>
-        </div>
+    <!-- SECTION 2: Favorites -->
+    <div class="section-card">
+        <h3>My Favorite Courses</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Course</th>
+                    <th>Semester</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fav in user.favorite_courses %}
+                <tr>
+                    <td>{{ fav.course.course_name }}</td>
+                    <td>{{ fav.semester }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('main.unfavorite_course', course_id=fav.course.id) }}">
+                            <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-    <section>
-        <form method="POST" class="upload-box">
-            {{ form.hidden_tag() }}
-            <label for="token">{{ form.token.label }}</label><br>
-            {{ form.token(class="form-control") }}<br><br>
-            {{ form.submit(class="btn-primary") }}
-        </form>
-    </section>
-</div>
-{% endif %}
+    {% endif %}
 
-</section>
-{% if user.role == 'admin' %}
-<section>
-<hr>
-<h4>Upload Course Catalog</h4>
-<form method="POST" action="{{ url_for('main.upload_catalog') }}" enctype="multipart/form-data" class="upload-box">
-    <input type="file" name="catalog" class="form-control mb-2" required>
-    <button type="submit" class="btn btn-primary">Upload Catalog PDF</button>
-</form>
-</section>
-{% endif %}
+    <!-- Admin only -->
+    {% if user.role == 'admin' %}
+    <div class="section-card">
+        <h4>Upload Course Catalog</h4>
+        <form method="POST" action="{{ url_for('main.upload_catalog') }}" enctype="multipart/form-data" class="upload-box">
+            <input type="file" name="catalog" class="form-control mb-2" required>
+            <button type="submit" class="btn btn-primary">Upload Catalog PDF</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
 
 <script>
-    function toggleSection(id) {
-        const el = document.getElementById(id);
-        if (el.style.display === 'none') {
-            el.style.display = 'block';
-        } else {
-            el.style.display = 'none';
-        }
+function toggleSection(id) {
+    const el = document.getElementById(id);
+    if (!el.style.maxHeight || el.style.maxHeight === '0px') {
+        el.style.maxHeight = el.scrollHeight + "px";
+    } else {
+        el.style.maxHeight = "0";
     }
-    </script>
-    
-
-{%endblock%}
+}
+</script>
+{% endblock %}

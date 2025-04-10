@@ -204,3 +204,16 @@ class ResourceChat(db.Model):
 
     messages = db.relationship('CourseResource', backref='chat', cascade='all, delete-orphan')
 
+
+
+class FavoriteCourse(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
+    semester = db.Column(db.String(20), nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='favorite_courses')
+    course = db.relationship('Course')
+
+

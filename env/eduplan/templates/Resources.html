@@ -10,13 +10,13 @@
   }
 
   .sidebar {
-    width: 320px;
-    background-color: #f9fafb;
-    padding: 1rem;
-    border-right: 1px solid #e5e7eb;
-    height: 100%;
-    overflow-y: auto;
-  }
+  flex: 0 0 20%;
+  background-color: #f9fafb;
+  padding: 1rem;
+  border-right: 1px solid #e5e7eb;
+  height: 100%;
+  overflow-y: auto;
+}
 
   .main-content {
     flex-grow: 1;
@@ -45,35 +45,84 @@
 
   .new-chat-btn {
     display: inline-block;
-    background-color: #6366f1;
+    background-color: #4287f5;
     color: white;
-    padding: 0.5rem 1rem;
+    padding: 0.75rem 1rem;
     border-radius: 0.5rem;
     margin-bottom: 1.5rem;
     text-align: center;
     width: 100%;
     text-decoration: none;
     font-weight: bold;
+    font-size: 1rem;
   }
 
-  .chat-history li {
-    margin-bottom: 0.5rem;
+  .chat-history {
+    list-style: none;
+    padding: 0;
+    margin: 0;
   }
 
-  .chat-history a {
-    text-decoration: none;
-    color: #111827;
-    display: block;
-    padding: 0.5rem;
-    border-radius: 0.5rem;
+  .chat-item {
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
-  .chat-history a:hover {
+  .chat-item:hover {
     background-color: #e5e7eb;
   }
 
+  .chat-title {
+    font-size: 0.95rem;
+    color: #111827;
+    text-decoration: none;
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chat-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: 0.5rem;
+  }
+
+  .rename-link,
+  .delete-link {
+    background: none;
+    border: none;
+    color: #6b7280;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+  }
+
+  .rename-link:hover,
+  .delete-link:hover {
+    color: #111827;
+  }
+
+  .main-content {
+  flex: 0 0 80%;
+  padding: 2rem;
+  overflow-y: auto;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+
   .chat-log {
-    margin-top: 2rem;
+    overflow-y: auto;
+    max-height: 65vh;
+    margin-bottom: 2rem;
   }
 
   .chat-entry {
@@ -101,69 +150,103 @@
     align-self: flex-start;
     background-color: #f3f4f6;
   }
+
+  .chatbox {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-top: 1rem;
+  }
+
+  .chatbox input[type="text"] {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+  }
+
+  .chatbox button {
+    background-color: #4f46e5;
+    color: white;
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.5rem;
+    border: none;
+    font-weight: bold;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="flex">
-  <!-- Sidebar -->
   <div class="sidebar">
     <a href="{{ url_for('main.new_resource_chat') }}" class="new-chat-btn">+ New Chat</a>
     <ul class="chat-history">
       {% for chat in chats %}
-      <li>
-        <a href="{{ url_for('main.resources', chat_id=chat.id) }}">{{ chat.title or "Untitled Chat" }}</a>
+      <li class="chat-item">
+        <a class="chat-title" href="{{ url_for('main.resources', chat_id=chat.id) }}">
+          {{ chat.title or 'Untitled Chat' }}
+        </a>
+        <div class="chat-controls">
+          <form method="POST" action="{{ url_for('main.rename_resource_chat', chat_id=chat.id) }}">
+            <button type="submit" class="rename-link">Rename</button>
+          </form>
+          <form method="POST" action="{{ url_for('main.delete_resource_chat', chat_id=chat.id) }}">
+            <button type="submit" class="delete-link">Delete</button>
+          </form>
+        </div>
       </li>
       {% endfor %}
     </ul>
   </div>
 
-  <!-- Main Chat Interface -->
   <div class="main-content">
+    <div class="chat-log" id="chat-log">
+      {% if messages %}
+      {% for msg in messages %}
+      <div class="chat-entry">
+        <div class="chat-bubble user-question">{{ msg.question }}</div>
+        <div class="chat-bubble ai-response">{{ msg.ai_response | safe }}</div>
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      {% if ai_response %}
+      <div class="chat-entry">
+        <div class="chat-bubble user-question">{{ request.form.get('question', '') }}</div>
+        <div class="chat-bubble ai-response">{{ ai_response | safe }}</div>
+      </div>
+      {% endif %}
+    </div>
+
     <form method="POST" action="/resources">
       <input type="hidden" name="chat_id" value="{{ current_chat.id if current_chat else '' }}">
       <label for="topicDropdown"><strong>Courses:</strong></label>
       <select id="topicDropdown" name="selected_course" required>
         <option value="">-- Select a Course --</option>
         {% for course in canvas_courses %}
-          <option value="{{ course.name }}">{{ course.name }}</option>
+        <option value="{{ course.name }}">{{ course.name }}</option>
         {% endfor %}
       </select>
 
-      <h3 class="mt-4"><strong>Ask a Question About Study Resources</strong></h3>
       <div class="chatbox">
         <input type="text" name="question" id="questionInput" placeholder="Type your question..." required>
         <button type="submit">Ask</button>
       </div>
     </form>
-
-    {% if ai_response %}
-    <div class="chat-log">
-      <div class="chat-entry">
-        <div class="chat-bubble user-question">
-          {{ request.form.get('question', '') }}
-        </div>
-        <div class="chat-bubble ai-response">
-          {{ ai_response | safe }}
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    {% if messages %}
-    <div class="chat-log">
-      {% for msg in messages %}
-      <div class="chat-entry">
-        <div class="chat-bubble user-question">
-          {{ msg.question }}
-        </div>
-        <div class="chat-bubble ai-response">
-          {{ msg.ai_response | safe }}
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %}
   </div>
 </div>
+
+<script>
+  window.onload = function () {
+    const chatLog = document.getElementById("chat-log");
+    if (chatLog) {
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+    const questionInput = document.getElementById("questionInput");
+    if (questionInput) {
+      questionInput.focus();
+    }
+  };
+</script>
 {% endblock %}
