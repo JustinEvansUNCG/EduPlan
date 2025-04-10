@@ -352,22 +352,56 @@ def course_content():
         if not question:
             question = "Explain a general study tip."
 
+        # Filter context from last 24 hours
+        one_day_ago = datetime.utcnow() - timedelta(days=1)
         previous_chats = (
             CourseContentAssistance.query
             .filter_by(user_id=current_user.id)
+            .filter(CourseContentAssistance.created_at >= one_day_ago)
             .order_by(CourseContentAssistance.created_at.desc())
             .limit(5)
             .all()
         )
 
+        # Build context from previous messages
         chat_context = ""
         for chat in reversed(previous_chats):
             chat_context += f"User: {chat.question}\nAI: {chat.ai_response}\n"
-        print(chat_context)
+
+        # Fetch and format transcript
+        transcript = (
+            ClassStatus.query
+            .filter(ClassStatus.user_id == current_user.id)
+            .order_by(ClassStatus.course_code.asc())
+            .all()
+        )
+        transcript_context_lines = []
+        for i, course in enumerate(transcript, start=1):
+            if course.completed:
+                transcript_context_lines.append(f"{i}. {course.course_code} - Grade: {course.grade} (Completed)")
+            else:
+                credits = f"{course.credits} credits" if course.credits else "Credits unknown"
+                transcript_context_lines.append(f"{i}. {course.course_code} - In Progress ({credits})")
+        transcript_context = "\n".join(transcript_context_lines)
+
+        # Fetch CSC courses
+        csc_courses = (
+            Course.query
+            .filter(Course.course_code.like("CSC %"))
+            .order_by(Course.course_code.asc())
+            .all()
+        )
+        csc_course_list = "\n".join([f"- {c.course_code}: {c.course_name}" for c in csc_courses])
+
+        # Final prompt with everything
         study_prompt = (
-            f"Here is the student's previous context:\n{chat_context}\n"
+            f"Here is the student's academic transcript:\n{transcript_context}\n\n"
+            f"Here is the student's previous question context:\n{chat_context}\n\n"
+            f"Here is a list of all Computer Science (CSC) courses offered:\n{csc_course_list}\n\n"
+            f"This student is majoring in Computer Science. "
             f"Ensure this is a study-related question. If it isn't, ask the user to rephrase. "
-            f"If it is, answer the question and tailor the response accordingly. Also, Keep the response short\n"
+            f"If it is, answer the question and tailor the response accordingly. Keep the response short. "
+            f"Do not say anything about it being a study-related question, just answer.\n"
             f"New Question: {question}"
         )
 
@@ -391,6 +425,8 @@ def course_content():
                 ai_response = "Error processing AI response."
 
     return render_template("course_content.html", ai_response=ai_response, transcript_form=transcript_form)
+
+
 
 
 
