@@ -38,7 +38,7 @@ async function getAssignments() {
         .catch(error => {
             console.error('Error:', error);
         });
-    refreshAssignments();
+    
 
 }
 waitOnAssignments();
@@ -46,6 +46,8 @@ waitOnAssignments();
 async function waitOnAssignments() {
 
     await getAssignments();
+    manipulate();
+    await refreshAssignments();
     manipulate();
 }
 
@@ -69,6 +71,8 @@ async function refreshAssignments() {
         });
     assignment_data = assignment_data_temp;
     assignment_json = assignment_json_temp;
+    getAssignments();
+
 }
 
 
@@ -340,14 +344,16 @@ const manipulate = () => {
 
                         console.log("minutes elapsed: " + time_elapsed);
 
+                        //gets the day of the week
                         const day_object = document.getElementById(days[the_date]);
+                        //lines below makes the box an event is displayed in
                         let event_object = document.createElement("div");
                         event_object.classList.add("flex-event");
                         event_object.style.height = (time_elapsed - 5) + "px";
                         event_object.style.marginTop = time_offset + "px";
-
                         event_object.innerHTML = `${event_json[j]["event_title"]}  <br> <p class="time-data">${event_json[j]["start_time"]}-${event_json[j]["end_time"]}</p>`;
                         day_object.appendChild(event_object);
+                        //Stores plan_ids for the case where a user deletes an event   
                         plan_id.push(event_json[j]["plan_id"])
 
                     }
@@ -420,7 +426,9 @@ const manipulate = () => {
 
                         console.log("minutes elapsed: " + time_elapsed);
 
+                        //gets the day of the week
                         const day_object = document.getElementById(days[the_date]);
+                        //lines below makes the box an event is displayed in
                         let event_object = document.createElement("div");
                         event_object.classList.add("flex-event");
                         event_object.style.height = (time_elapsed - 5) + "px";
@@ -428,6 +436,7 @@ const manipulate = () => {
 
                         event_object.innerHTML = `${event_json[j]["event_title"]}  <br> <p class="time-data">${event_json[j]["start_time"]}-${event_json[j]["end_time"]}</p>`;
                         day_object.appendChild(event_object);
+                        //Stores plan_ids for the case where a user deletes an event                        
                         plan_id.push(event_json[j]["plan_id"])
 
                     }
@@ -491,13 +500,15 @@ const manipulate = () => {
                     const start_hour = parseInt(event_json[j]["start_time"].substring(0, 2));
                     const start_minutes = parseInt(event_json[j]["start_time"].substring(3, 5));
 
+                    //this offset is how many minutes into the day an event starts, and this offsets events on the scheduler by that amount
                     const time_offset = start_hour * 60 + start_minutes;
 
+                    //This variable calculates how long an event goes on, and increases the size of an event by one pixel for every minute
                     const time_elapsed = (end_hour - start_hour) * 60 + end_minutes - start_minutes;
 
-                    console.log("minutes elapsed: " + time_elapsed);
-
+                    //gets the day of the week
                     const day_object = document.getElementById(days[the_date]);
+                    //lines below makes the box an event is displayed in
                     let event_object = document.createElement("div");
                     event_object.classList.add("flex-event");
                     event_object.style.height = (time_elapsed - 5) + "px";
@@ -505,6 +516,8 @@ const manipulate = () => {
 
                     event_object.innerHTML = `${event_json[j]["event_title"]}  <br> <p class="time-data">${event_json[j]["start_time"]}-${event_json[j]["end_time"]}</p>`;
                     day_object.appendChild(event_object);
+
+                    //Stores plan_ids for the case where a user deletes an event
                     plan_id.push(event_json[j]["plan_id"])
                 }
 
@@ -520,9 +533,11 @@ const manipulate = () => {
 
         day.innerHTML = lit;
 
+        //retrieves all events
         const event_objects = document.querySelectorAll(".flex-event");
 
-        let testnum = 0;
+        
+        //Loop below allows events to be modified
         for (let i = 0; i < event_objects.length; i++) {
 
 
@@ -558,6 +573,7 @@ const manipulate = () => {
 
                 const form = document.getElementById("delete-form");
                 //form.submit();
+                //event listener below listens for and intercepts the submission of deletion of an event
                 form.addEventListener("submit", async function (event) {
                     event.preventDefault();
 
@@ -577,13 +593,14 @@ const manipulate = () => {
                         close_event();
                         manipulate();
                     }
-
+                    ////////////////////////
                     await func();
                 })
 
 
                 const modify_form = document.getElementById("modify-form");
                 //form.submit();
+                //event listener below listens for and intercepts the submission of modifications to an event
                 modify_form.addEventListener("submit", async function (event) {
                     event.preventDefault();
 
@@ -616,6 +633,7 @@ const manipulate = () => {
 
         console.log(day_blocks.length);
 
+        //for loop below checks all 7 days of a week on the scheduler and checks if a user has double clicked on a day, meaning they want to make an event
         for (let i = 0; i < day_blocks.length; i++) {
 
             day_blocks[i].addEventListener("dblclick", event_creation);
@@ -623,22 +641,25 @@ const manipulate = () => {
             function event_creation() {
 
 
+                //the 3 lines below allow the day of the week to be shown on the event creation modal
                 var modal = document.getElementById("modal-event-add");
                 modal.querySelector("h2").innerHTML = days[i];
                 modal.style.display = "block";
 
-                //let temp_date = new Date(day_blocks[i].classList[1]).toISOString();
+                //retrieces day of the week and assigns it to the date field
                 let temp_date = day_blocks[i].classList[1];
                 console.log(temp_date);
                 date_field = document.getElementById("event-date");
                 date_field.value = temp_date;
                 console.log(date_field);
 
+
                 start_time_field = document.getElementById("event-start-time");
                 end_time_field = document.getElementById("event-end-time");
                 end_time_field.addEventListener("blur", time_validity_check);
                 start_time_field.addEventListener("blur", time_validity_check);
 
+                //function checks the validity of a users selected times to create an event, making sure that no bad inputs are permitted
                 function time_validity_check(event) {
                     const end_time = end_time_field.value;
                     const start_time = start_time_field.value;
@@ -697,13 +718,14 @@ const manipulate = () => {
 
 
 
-
+                //by default the event creation type is zero, which means u can use existing events in making a planned event
                 var event_type = document.getElementById("event_creation_type");
                 event_type.value = 0;
 
                 var new_event_btn = document.getElementById("new-event-btn");
                 new_event_btn.addEventListener("click", new_event_displayer);
 
+                //when activated, will allow a user to make a planned_event with a new event
                 function new_event_displayer() {
 
                     document.getElementById("new-event-info").style.display = "block";
@@ -712,7 +734,6 @@ const manipulate = () => {
                     document.getElementById("new-event-deactivate").style.display = "block";
                     document.getElementById("existing-events").style.display = "none";
                     event_type.value = 1;
-                    console.log("foo");
 
 
 
@@ -721,6 +742,7 @@ const manipulate = () => {
                 var old_event_btn = document.getElementById("old-event-btn");
                 old_event_btn.addEventListener("click", old_event_displayer);
 
+                //when triggered, will allow user to make a planned_event with existing events
                 function old_event_displayer() {
 
                     document.getElementById("new-event-info").style.display = "none";
@@ -742,7 +764,7 @@ const manipulate = () => {
                 //form.submit();
                 add_form.addEventListener("submit", add_event);
 
-
+                //function below stops the submission of a new event, and parses the forms data
                 async function add_event(event) {
                     event.preventDefault();
 
@@ -751,6 +773,7 @@ const manipulate = () => {
 
                     let day_date = document.querySelectorAll("li");
 
+                    //line below updates the database with the new event
                     const response = await fetch('/study_planner/add', {
                         method: 'POST',
                         body: form_info,
@@ -760,6 +783,7 @@ const manipulate = () => {
                         .then(data => console.log(data))
                         .catch(error => console.log(error));
 
+                    //function below resets the calendarto show new events, and deals with any rogue event listeners
                     const func = async () => {
                         await getEvents();
                         close_modals();
@@ -780,9 +804,10 @@ const manipulate = () => {
 
 
 
-
+                //closes modals
                 var close = modal.querySelector(".close");
                 close.addEventListener("click", close_modals);
+
 
                 function close_modals(event) {
                     var modal = document.querySelectorAll(".modal");
@@ -802,78 +827,26 @@ const manipulate = () => {
                 //day_blocks[i].removeEventListener("dblclick", event_creation);
 
             }
-
-
         }
-
-        //event_objects.forEach(check_events);
-        //event_objects.forEach(addEventListener("click", check_events));
-
-
-
     }
 
+    //checks if a day on the calendar has been clicked, and pops up a modal with assignment information if applicable
     all_days = document.querySelectorAll("li");
     for (let i = 0; i < all_days.length; i++) {
 
-        if (all_days[i].classList[0] !== "inactive") {
+        let day_id = parseInt(all_days[i].classList[0]);
+
+
+        if (all_days[i].classList[0] !== "inactive" && day_id) {
 
             all_days[i].addEventListener("click", () => {
                 day_view(all_days, i);
             });
         }
 
-        /*all_days[i].addEventListener("click", function () {
-            var modal = document.getElementById("modal-day-view");
-            var modal_content = modal.querySelector(".modal-content-flex");
-            var yesterday_btn = document.getElementById("day-prev");
-            var tomorrow_btn = document.getElementById("day-next");
- 
-            yesterday_btn.addEventListener("click", () => {
- 
-                console.log("hello there");
-            })
-            console.log("hello there 2");
- 
-            tomorrow_btn.addEventListener("click", () => {
-                i = i + 1;
-            })
- 
-            while (modal_content.querySelector(".flex-assignment")) {
-                modal_content.querySelector(".flex-assignment").remove();
-            }
- 
-            let day_date = all_days[i].classList[0];
-            for (let j = 0; j < Object.keys(assignment_json).length; j++) {
- 
-                let temp_date = assignment_json[j]["due_at"].substring(0, 10);
-                if (temp_date === day_date) {
-                    //lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
-                    //const day_object = document.getElementById(days[the_date]);
- 
-                    let assignment_object = document.createElement("div");
-                    assignment_object.classList.add("flex-assignment");
-                    assignment_object.innerHTML = `${assignment_json[j]["name"]}-${assignment_json[j]["course_name"]}  <br> ${assignment_json[j]["due_at"]}`;
-                    modal_content.appendChild(assignment_object);
-                    //plan_id.push(event_json[j]["plan_id"])
- 
-                }
- 
-            }
- 
-            modal.querySelector("h2").innerHTML = all_days[i].classList;
-            modal.style.display = "block";
- 
- 
-            var close = modal.querySelector(".close");
-            close.addEventListener("click", close_event);
- 
- 
- 
-        })*/
-
     }
 
+    //loop below allows the number of events on a given day to be tracked and displayed on the calendar
     for (let i = 0; i < Object.keys(assignment_json).length; i++) {
         let temp_date = assignment_json[i]["due_at"].substring(0, 10);
         
@@ -1068,7 +1041,7 @@ function formReader(event) {
 
 }
 
-
+//formats the day view modal
 function day_view(all_days, i) {
 
 
@@ -1090,14 +1063,11 @@ function day_view(all_days, i) {
 
         let temp_date = assignment_json[j]["due_at"].substring(0, 10);
         if (temp_date === day_date) {
-            //lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
-            //const day_object = document.getElementById(days[the_date]);
-
+            
             let assignment_object = document.createElement("div");
             assignment_object.classList.add("flex-assignment");
             assignment_object.innerHTML = `${assignment_json[j]["name"]}-${assignment_json[j]["course_name"]}  <br> ${assignment_json[j]["due_at"]}`;
             modal_content.appendChild(assignment_object);
-            //plan_id.push(event_json[j]["plan_id"])
 
         }
 
@@ -1106,7 +1076,6 @@ function day_view(all_days, i) {
     modal.querySelector("h2").innerHTML = all_days[i].classList;
     modal.style.display = "block";
 
-    const controller = new AbortController();
     if (all_days[i - 1].classList[0] && all_days[i - 1].classList[0] !== "inactive") {
         yesterday_btn.addEventListener("click", yesterday_click);
 
