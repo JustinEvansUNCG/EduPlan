@@ -10,11 +10,12 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
 main {
   display: flex;
-  background: #516e8b;
+  background: #dde2eb;
   min-height: 100vh;
   padding: 0 10px;
   align-items:flex-start;
   justify-content: center;
+  
 }
 
 .calendar-container {
@@ -30,6 +31,7 @@ main {
   align-items: center;
   padding: 25px 30px 10px;
   justify-content: space-between;
+  color: white;
 }
 
 header .calendar-navigation {
@@ -137,7 +139,7 @@ header .calendar-current-date {
 }
 
 .calendar-dates li.active::before {
-  background: #6332c5;
+  background: #4287f5;
 }
 
 .calendar-dates li:not(.active):hover::before {
@@ -254,7 +256,7 @@ tr {
   width: 95%;
   
   
-  background-color: #7e94aa;
+  
 
 
 
