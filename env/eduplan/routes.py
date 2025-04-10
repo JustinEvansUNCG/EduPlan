@@ -398,7 +398,7 @@ def course_content():
             f"Here is the student's academic transcript:\n{transcript_context}\n\n"
             f"Here is the student's previous conversation context:\n{chat_context}\n"
             f"Ensure the question is study-related. If it is not, ask the user to rephrase. "
-            f"If it is, answer it concisely.\n"
+            f"If it is, just answer the question with a short response unless the student asks for more detail\n"
             f"New Question: {question}"
         )
 
