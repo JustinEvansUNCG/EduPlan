@@ -151,10 +151,10 @@
             {{ chat.title or 'Untitled Chat' }}
           </a>
           <form method="POST" action="{{ url_for('main.rename_resource_chat', chat_id=chat.id) }}" style="margin-right: 0.3rem;">
-            <button type="submit" name="rename" class="btn btn-sm btn-outline-secondary" title="Rename">✎</button>
+            <button type="submit" name="rename" class="btn btn-sm btn-outline-secondary" title="Rename">Rename</button>
           </form>
           <form method="POST" action="{{ url_for('main.delete_resource_chat', chat_id=chat.id) }}">
-            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">🗑</button>
+            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">Delete</button>
           </form>
         </div>
       </li>
