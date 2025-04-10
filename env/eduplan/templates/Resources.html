@@ -140,8 +140,10 @@
 {% block content %}
 <div class="flex">
   <div class="sidebar">
-    <a href="{{ url_for('main.new_resource_chat') }}" class="new-chat-btn">+ New Chat</a>
-    <ul class="chat-history">
+    <form action="{{ url_for('main.new_resource_chat') }}" method="POST">
+      <button type="submit" class="new-chat-btn" style="width: 100%;">+ New Chat</button>
+    </form>
+        <ul class="chat-history">
       {% for chat in chats %}
       <li style="margin-bottom: 1rem;">
         <div style="display: flex; align-items: center; justify-content: space-between;">

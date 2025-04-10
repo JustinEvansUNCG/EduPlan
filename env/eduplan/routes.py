@@ -1230,6 +1230,7 @@ def new_resource_chat():
     db.session.commit()
     return redirect(url_for('main.resources', chat_id=new_chat.id))
 
+
 @main_blueprint.route("/resources/chat/<int:chat_id>/delete", methods=["POST"])
 @login_required
 def delete_resource_chat(chat_id):
