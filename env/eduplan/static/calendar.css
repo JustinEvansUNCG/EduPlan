@@ -327,6 +327,7 @@ h2 {
   display: none;
 }
 
-#event-date {
+#event-date, #modify-date {
   display: none;
 }
+
