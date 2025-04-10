@@ -38,7 +38,7 @@ async function getAssignments() {
         .catch(error => {
             console.error('Error:', error);
         });
-    
+
 
 }
 waitOnAssignments();
@@ -112,6 +112,24 @@ fetch('/api/events')
     .catch(error => {
         console.error('Error:', error);
     });
+
+
+
+let info_btn = document.getElementById("info-button");
+info_btn.addEventListener("click", helpInfo);
+console.log(info_btn);
+
+function helpInfo() {
+    var modal = document.getElementById("modal-info");
+    modal.style.display = "block";
+    var close_btn = modal.querySelector(".close");
+    close_btn.addEventListener("click", close_modal);
+
+    function close_modal() {
+        modal.style.display = "none";
+    }
+
+}
 
 
 //the global variables below keep track of important information needed in the calendar
@@ -617,7 +635,7 @@ const manipulate = () => {
 
                     }
 
-                    
+
 
 
                 }
@@ -913,7 +931,7 @@ const manipulate = () => {
     //loop below allows the number of events on a given day to be tracked and displayed on the calendar
     for (let i = 0; i < Object.keys(assignment_json).length; i++) {
         let temp_date = assignment_json[i]["due_at"].substring(0, 10);
-        
+
         if (document.getElementsByClassName(temp_date).length !== 0) {
             let day_item = document.getElementsByClassName(temp_date)[0];
             let assignment_count = day_item.querySelector(".assignment-count").innerHTML;
@@ -1127,7 +1145,7 @@ function day_view(all_days, i) {
 
         let temp_date = assignment_json[j]["due_at"].substring(0, 10);
         if (temp_date === day_date) {
-            
+
             let assignment_object = document.createElement("div");
             assignment_object.classList.add("flex-assignment");
             assignment_object.innerHTML = `${assignment_json[j]["name"]}-${assignment_json[j]["course_name"]}  <br> ${assignment_json[j]["due_at"]}`;
@@ -1177,6 +1195,9 @@ function day_view(all_days, i) {
 
 
     }
+
+
+
 
 
 

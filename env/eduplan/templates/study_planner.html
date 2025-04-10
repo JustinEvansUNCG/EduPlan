@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}temp page{% endblock %}
+{% block title %}Study planner{% endblock %}
 {% block head %}
 {{ super() }}
 <link rel="stylesheet"
@@ -16,9 +16,11 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
 
 <main>
+    
     <div class="calendar-container">
         <header class="calendar-header">
             <p class="calendar-current-date"></p>
+            <button id="info-button">More Info</button>
             <div id="calendar-mode">
                 <button id="week-button" class="not-selected">Week</button>
                 <button id="month-button" class="selected">Month</button>
@@ -236,6 +238,38 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
             <h2></h2>
             <h3>Assignments Due:</h3>
+
+
+
+
+
+
+
+
+        </div>
+
+    </div>
+
+
+    <div id="modal-info" class="modal">
+
+        <div class="modal-content-flex">
+            
+            <header>
+                <span class="close">&times;</span>
+
+            </header>
+
+            <h2></h2>
+            <h3>First time user?</h3>
+            <p>Eduplan is here to help you stay on track. Here are some pointers for getting started using this calendar!</p>
+            <ul>
+                <li>If numbers appear under a day, it indicates the number of assignments are due on that day</li>
+                <li>Clicking on a day on the calendar will list assignments and when they are due</li>
+                <li>Make sure you have your canvas connected to see assignment due dates, see more about this on your profile page</li>
+                <li>Once on the week view of the calendar, you can double click on any of the days of the week to create an event</li>
+                
+            </ul>
 
 
 
