@@ -343,14 +343,14 @@ def course_content():
     ai_response = None
     transcript_form = TranscriptForm()
 
-    csc_courses = (
-        Course.query
-        .filter(Course.course_code.startswith("PSY"))
-        .order_by(Course.course_code)
-        .all()
-    )
-    course_list = [f"{course.course_code} - {course.course_name}" for course in csc_courses]
-    course_context = "\n".join(course_list)
+    #csc_courses = (
+     #   Course.query
+      #  .filter(Course.course_code.startswith("PSY"))
+       # .order_by(Course.course_code)
+        #.all()
+    #)
+    #course_list = [f"{course.course_code} - {course.course_name}" for course in csc_courses]
+    #course_context = "\n".join(course_list)
 
     if request.method == "POST":
         question = request.form.get("question", "").strip()
@@ -393,8 +393,8 @@ def course_content():
         transcript_context = "\n".join(transcript_context_lines)
 
         study_prompt = (
-            f"The student is majoring in psychology.\n\n"
-            f"Here are the psychology courses available:\n{course_context}\n\n"
+            #f"The student is majoring in psychology.\n\n"
+            #f"Here are the psychology courses available:\n{course_context}\n\n"
             f"Here is the student's academic transcript:\n{transcript_context}\n\n"
             f"Here is the student's previous conversation context:\n{chat_context}\n"
             f"Ensure the question is study-related. If it is not, ask the user to rephrase. "
