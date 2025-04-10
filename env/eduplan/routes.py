@@ -443,7 +443,7 @@ def transcript_reader():
     transcript_form = TranscriptForm(request.form)
 
 
-    file = request.files['transcript']
+    file = request.files['file']
 
     print(os.path.isdir(current_app.config['UPLOAD_FOLDER']))
     print(current_app.config['UPLOAD_FOLDER'])
