@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Browse Courses{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .fav-form {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+    }
+
+    .description-row {
+        display: none;
+        background-color: #f9f9f9;
+    }
+
+    .description-toggle {
+        background: none;
+        border: none;
+        color: #0d6efd;
+        padding: 0;
+        font-weight: 500;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>📚 Browse Course Catalog</h2>
+
+    <form method="GET" action="{{ url_for('main.browse_courses') }}" class="mb-3">
+        <div class="input-group">
+            <input type="text" name="search" class="form-control" placeholder="Search by name, code, or department..." value="{{ request.args.get('search', '') }}">
+            <button type="submit" class="btn btn-outline-primary">Search</button>
+        </div>
+    </form>
+
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Department</th>
+                <th>Code</th>
+                <th>Name</th>
+                <th>Credits</th>
+                <th>Semester</th>
+                <th>Favorite</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for course in courses %}
+            <tr>
+                <td>{{ course.department }}</td>
+                <td>{{ course.course_code }}</td>
+                <td>
+                    <button class="description-toggle" onclick="toggleDescription('{{ course.id }}')">
+                        {{ course.course_name }}
+                    </button>
+                </td>
+                <td>{{ course.credits }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('main.favorite_course') }}" class="fav-form">
+                        <input type="hidden" name="course_id" value="{{ course.id }}">
+                        <select name="semester" class="form-select form-select-sm" required>
+                            <option value="">Select</option>
+                            <option>Fall 2025</option>
+                            <option>Spring 2026</option>
+                            <option>Summer 2026</option>
+                        </select>
+                </td>
+                <td>
+                        <button type="submit" class="btn btn-outline-primary btn-sm">❤️</button>
+                    </form>
+                </td>
+            </tr>
+            <tr id="desc-{{ course.id }}" class="description-row">
+                <td colspan="6">
+                    <strong>Description:</strong><br>
+                    {{ course.description or "No description available." }}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="text-center text-muted">No courses found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if pagination %}
+    <nav class="mt-4" aria-label="Course navigation">
+        <ul class="pagination justify-content-center">
+            {% if pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('main.browse_courses', page=pagination.prev_num, search=request.args.get('search', '')) }}">
+                    &laquo; Prev
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo; Prev</span></li>
+            {% endif %}
+
+            <li class="page-item disabled">
+                <span class="page-link">
+                    Page {{ pagination.page }} of {{ pagination.pages }}
+                </span>
+            </li>
+
+            {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('main.browse_courses', page=pagination.next_num, search=request.args.get('search', '')) }}">
+                    Next &raquo;
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next &raquo;</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<script>
+    function toggleDescription(courseId) {
+        const row = document.getElementById('desc-' + courseId);
+        if (row.style.display === 'none' || row.style.display === '') {
+            row.style.display = 'table-row';
+        } else {
+            row.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}

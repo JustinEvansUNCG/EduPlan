@@ -4,7 +4,7 @@ from eduplan import bcrypt
 from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, TranscriptForm, CourseCatalogUploadForm, EditCourseForm, CanvasTokenForm
 
 from eduplan import db
-from eduplan.models import study_time, study_event, User, CourseContentAssistance, ClassStatus,CourseResource, assignments, ResourceChat
+from eduplan.models import study_time, study_event, User, CourseContentAssistance, ClassStatus,CourseResource, assignments, ResourceChat, FavoriteCourse
 from flask_bcrypt import Bcrypt
 import google.generativeai as genai
 import re
@@ -25,6 +25,8 @@ import requests
 from datetime import datetime, timezone, timedelta
 from cryptography.fernet import Fernet
 from math import ceil
+from sqlalchemy import or_
+
 
 import filetype
 
@@ -187,7 +189,7 @@ def sign_up():
             name=form.name.data,
             email=form.email.data,
             password_hash=hash_password,
-            role='student'
+            role='admin'
         )
         db.session.add(user)
         db.session.commit()
@@ -337,6 +339,7 @@ def rename_resource_chat(chat_id):
 @main_blueprint.route("/course_content", methods=["GET", "POST"])
 @login_required
 def course_content():
+    from .models import Course
     ai_response = None
     transcript_form = TranscriptForm()
 
@@ -440,7 +443,8 @@ def transcript_reader():
     transcript_form = TranscriptForm(request.form)
 
 
-    file = request.files["file"]
+    file = request.files['file']
+
     print(os.path.isdir(current_app.config['UPLOAD_FOLDER']))
     print(current_app.config['UPLOAD_FOLDER'])
 
@@ -1234,3 +1238,58 @@ def delete_resource_chat(chat_id):
     db.session.commit()
     flash("Chat deleted.")
     return redirect(url_for("main.resources"))
+
+@main_blueprint.route('/favorite_course', methods=['POST'])
+@login_required
+def favorite_course():
+    course_id = request.form.get('course_id')
+    semester = request.form.get('semester')
+
+    existing = FavoriteCourse.query.filter_by(user_id=current_user.id, course_id=course_id).first()
+    if not existing:
+        fav = FavoriteCourse(user_id=current_user.id, course_id=course_id, semester=semester)
+        db.session.add(fav)
+        db.session.commit()
+        flash('Course added to favorites!', 'success')
+    else:
+        flash('Course already favorited.', 'info')
+
+    return redirect(request.referrer or url_for('main.profile'))
+
+@main_blueprint.route('/unfavorite_course/<int:course_id>', methods=['POST'])
+@login_required
+def unfavorite_course(course_id):
+    fav = FavoriteCourse.query.filter_by(user_id=current_user.id, course_id=course_id).first()
+    if fav:
+        db.session.delete(fav)
+        db.session.commit()
+        flash("Course removed from favorites.", "info")
+    else:
+        flash("Course not found in your favorites.", "warning")
+    return redirect(request.referrer or url_for('main.profile'))
+
+
+@main_blueprint.route('/browse_courses', methods=['GET'])
+@login_required
+def browse_courses():
+    from .models import Course
+
+    search_query = request.args.get('search', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = 100
+
+    if search_query:
+        search_pattern = f"%{search_query}%"
+        filters = or_(
+            Course.course_name.ilike(search_pattern),
+            Course.course_code.ilike(search_pattern),
+            Course.department.ilike(search_pattern)
+        )
+        
+        pagination = Course.query.filter(filters).paginate(page=page, per_page=per_page, error_out=False)
+    else:
+        pagination = Course.query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    courses = pagination.items
+
+    return render_template("browse_courses.html", courses=courses, pagination=pagination)
