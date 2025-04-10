@@ -77,7 +77,7 @@ def index():
     return render_template("index.html", todos=todos, template_form=TodoForm())
 
 
-
+#Route brings you to the calendar page
 @main_blueprint.route("/study_planner", methods=["GET", "POST"])
 @login_required
 def study_planner():
@@ -85,44 +85,44 @@ def study_planner():
     print(session["user_id"])
     print(session["user_id"])
     print(session["user_id"])
+
+    #forms below are all initialized here so they can be displayed
     form = EventDeleteForm(request.form)
-
     add_form = EventAddForm(request.form)
-
     modify_form = EventModifyForm(request.form)
 
+    #db query getting all events for a user
     event_items = db.session.query(study_event).filter_by(user_id=session['user_id']).all()
 
+
     event_list = []
+
+    #puts all event titles in a list
     for event in event_items:
-        #event_list.append(str({"event_id": event.event_id, "event_title": event.event_title, "event_description": event.event_description}))
         event_list.append((str(event.event_id), event.event_title))
 
+    #Stores list of events as the choices in existing events in add form
     add_form.existing_events.choices = event_list
 
+    #validate form now that all changes to its structure have been made
     add_form.existing_events.validate_choice = True
-
-
     add_form.validate_on_submit()
 
 
-
+    #This POST request handles planned_event removal
     if request.method == 'POST' and form.validate():
-        print(form.plan_id.data)
         event = db.session.query(study_time).get(form.plan_id.data)
-
-
-        #plan_event = study_time(form.plan_id)
         db.session.delete(event)
         db.session.commit()
 
         flash('Event deleted')
-        #return redirect(url_for('login'))
 
 
     return render_template("study_planner.html", form=form, add_form=add_form, modify_form=modify_form)
 
 
+
+#Route handles event modification
 @main_blueprint.route("/study_planner/modify", methods=["POST"])
 def modify_study_event():
 
@@ -130,13 +130,11 @@ def modify_study_event():
 
     if request.method == 'POST' and modify_form.validate():
         
+        #Lines below update the parameters of an event
         planned_event = db.session.query(study_time).get(modify_form.plan_id.data)
-
         planned_event.start_time = modify_form.start_time.data
         planned_event.end_time = modify_form.end_time.data
         planned_event.date = modify_form.date.data
-
-        
 
         event = db.session.query(study_event).get((session["user_id"], planned_event.event_id))
         event.event_title = modify_form.event_title.data
@@ -147,25 +145,22 @@ def modify_study_event():
 
 
 
-
+#Route deals with Study_event addition
 @main_blueprint.route("/study_planner/add", methods=["POST"])
 def add_study_event():
 
 
     add_form = EventAddForm(request.form)
 
-
-
-
-    #EventAddForm.validate_event(add_form, add_form.existing_events)
-
     
     if request.method == 'POST' and add_form.validate():
         
+        #Makes study time with a preexisting event
         if add_form.event_creation_type.data == "0":
             planned_event = study_time(date = add_form.date.data, event_id = add_form.existing_events.data, start_time = add_form.start_time.data, end_time = add_form.end_time.data)
             db.session.add(planned_event)
             db.session.commit()
+        #Makes a new study time with a new event
         elif add_form.event_creation_type.data == "1":
 
 
@@ -174,23 +169,11 @@ def add_study_event():
             db.session.add(event)
             db.session.commit()
 
-            
-
             planned_event = study_time(date = add_form.date.data, event_id = event.event_id, start_time = add_form.start_time.data, end_time = add_form.end_time.data)
             db.session.add(planned_event)
             db.session.commit()
 
-
-
-        #plan_event = study_time(form.plan_id)
-        #db.session.delete(event)
-        #db.session.commit()
-
-        #flash('Event deleted')
-        #return redirect(url_for('login'))
-
     return redirect(url_for('main.study_planner'))
-    #return render_template("study_planner.html", form=form, add_form=add_form)
 
 
 from flask_login import login_user
@@ -345,6 +328,8 @@ def resources():
 @login_required
 def course_content():
     ai_response = None
+
+    #Transcript submission form
     transcript_form = TranscriptForm()
 
     if request.method == "POST":
@@ -394,7 +379,7 @@ def course_content():
 
 
 
-
+#This route will handle reading a transcript
 @main_blueprint.route("/transcript_reader", methods=["POST"])
 def transcript_reader():
 
@@ -407,19 +392,18 @@ def transcript_reader():
     print(os.path.isdir(current_app.config['UPLOAD_FOLDER']))
     print(current_app.config['UPLOAD_FOLDER'])
 
+    #Saves file
     filename = secure_filename(file.filename)
-    print(filename)
     file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
     file.save(file_path)
 
+    #try block checks if a file is of type pdf, and rejects otherwise
     try:
         if filetype.guess(file_path).extension is "pdf":
             valid = True   
     except Exception:
         valid = False
 
-    #print(filetype.guess(file_path).extension)
-    #filetype.Type
     if valid:
 
         reader = PdfReader(file_path)
@@ -428,7 +412,7 @@ def transcript_reader():
 
     
     
-
+        #Loop parses the pdf, splitting up document by line
         for i in range(page_count):
 
             page = reader.pages[i]
@@ -441,11 +425,11 @@ def transcript_reader():
                     valid = False
                     break
 
+            #A pattern checker that makes sure lines are the lines we want
             course_code_pattern = "and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]L|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]|and [0-9][0-9][0-9]L|or [0-9][0-9][0-9]L|and [0-9][0-9][0-9]|or [0-9][0-9][0-9]"
-
-            #"and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]"
             
 
+            #Keeps lines that contain the pattern in course_code_pattern
             for item in temp_list:
                 line_check = re.findall(course_code_pattern, item)
 
@@ -453,24 +437,23 @@ def transcript_reader():
 
                     course_list.append(item)
 
-        #print(*course_list, sep="\n")
 
 
         incomplete_list = dict()
         complete_list = dict()
 
         if valid:
-
+            #Clears database of old transcript data
             old_data = db.session.query(ClassStatus).filter_by(user_id=session['user_id']).delete()
-            #db.session.delete(old_data)
             db.session.commit()
 
+            #Parses all lines that had the pattern needed, and splits the lines up by complete and incomplete courses
             for item in course_list:
+                
 
                 line_check = re.findall(course_code_pattern, item)
                 grades_check = re.findall("[A-Z][+] [0-9][A-Z][a-z][a-z]|[A-Z]- [0-9][A-Z][a-z][a-z]|[A-Z] [0-9][A-Z][a-z][a-z]|[A-Z][+] [0-9] [A-Z][a-z][a-z]|[A-Z]- [0-9] [A-Z][a-z][a-z]|[A-Z] [0-9] [A-Z][a-z][a-z]", item)
 
-                #lab_check = re.findall("[A-Z][A-Z][A-Z]\s[0-9][0-9][0-9][L]\s", item)
 
                 completed_check = re.findall("[a-z][a-z][a-z]\s[0-9]", item)
                 inc_check = re.findall("[1-9][0-9] Credits|[1-9] Credits", item)
@@ -479,24 +462,24 @@ def transcript_reader():
 
                 #print(line_check)
 
-            #some issues remain with cases on the transcript that say "or"
+                #If a class is incomplete, it is put into an incomplete_list
                 if inc_check:
                     credits = inc_check[0][0] + inc_check[0][1]
                     credits = credits.replace(" ", "")
 
+
                     if len(line_check) > 1:
                         for i in range(len(line_check)):
+                            #If statements below checks how you need to take certain courses, and handles them accordingly
                             if "and" in line_check[i]:
                                 if len(line_check[i]) < 9:
                                     line_check[i] = line_check[i].replace("and", line_check[0][0:3])
                                 else:
                                     line_check[i] = line_check[i].replace("and ", "")
                                 incomplete_list[line_check[i]] = ["", int(credits) / len(line_check)]
-                                #incomplete_list[line_check[i]][1] = credits
 
                                 if i == len(line_check)-1:
                                     incomplete_list[line_check[0]] = ["", int(credits) / len(line_check)]
-                                    #incomplete_list[line_check[i]][1] = credits
 
                             if "or" in line_check[i]:
                                 if len(line_check[i]) < 8:
@@ -507,22 +490,17 @@ def transcript_reader():
 
                                 if i == len(line_check)-1:
                                     incomplete_list[line_check[0]] = ["", credits]
-                                    #incomplete_list[line_check[0]][1] = credits
 
 
-
+                    #This is the case where u have a specific course to take
                     else:
                         incomplete_list[line_check[0]] = ["", credits]
-                        #incomplete_list[line_check[0]][1] = credits
 
-                    
+                #This section stores completed courses into a list
                 elif line_check and grades_check:
                     grade = grades_check[0][0] + grades_check[0][1]
                     grade = grade.replace(" ", "")
                     complete_list[line_check[0]] = [grade, ""]
-                #complete_list[line_check[0]][1] = ""
-
-            #print(*incomplete_list.keys(), sep="\n")
             
 
             #combines classes needed with classes completed
@@ -532,9 +510,8 @@ def transcript_reader():
             #breaks up dictionary, leaving us with the course codes in courses, and grade and credits in grades
             courses = list(incomplete_list.keys())
             grades = list(incomplete_list.values())
-
-            #print(*courses, *grades, sep="\n")
             
+            #Loop makes sure all courses are added to a students list of courses taken/needed
             for i in range(len(courses)):
                 
                 #checks if grade is empty or not
@@ -555,6 +532,7 @@ def transcript_reader():
         flash('Transcript Uploaded!')
     else:
         flash('Error processing transcript')
+
     return redirect(url_for('main.course_content'))
 
 
@@ -585,22 +563,22 @@ def profile():
     return render_template("profile.html", form=form, message=message, user=current_user)
 
 
-
+#Route turns all of a users planned events into json
 @main_blueprint.route('/api/event_times')
 def get_event_times():
     print(session['user_id'])
     event_items = db.session.query(study_event, study_time).filter_by(user_id=session['user_id']).join(study_time).all()
 
     event_list = []
+    #creates a list of events
     for event, event_time in event_items:
         event_list.append(str({"date": str(event_time.date), "event_id": event.event_id, "event_title": event.event_title, "event_description": event.event_description, "start_time": str(event_time.start_time), "end_time": str(event_time.end_time), "plan_id": event_time.plan_id}))
+    #returns a json of the list
     return jsonify(event_list)
-    #return jsonify([dict(event) for event in event_items])
 
-
+#Route turns all of a users events into json
 @main_blueprint.route('/api/events')
 def get_events():
-    print(session['user_id'])
     event_items = db.session.query(study_event).filter_by(user_id=session['user_id']).all()
 
     event_list = []
@@ -1062,31 +1040,24 @@ def regenerate_canvas_token():
 
     return render_template('regenerate_canvas_token.html', form=form)
 
+#Refreshes a students assignment list
 @main_blueprint.route('/canvas/assignments/refresh')
 @login_required
 def canvas_assignments_refresh():
-    print(session["user_id"])
-    print(session["user_id"])
 
     token = current_user.canvas_token
+
+    #exits early if user hasnt entered their canvas api token
     if not token:
        
         flash("You need to connect your Canvas account first.", "warning")
-        #return redirect(url_for('main.connect_canvas'))
         return jsonify([])
     
     
     db.session.query(assignments).filter_by(user_id=session['user_id']).delete()
     db.session.commit()
 
-   # fernet = Fernet(current_app.config["FERNET_KEY"])
-    #try:
-     #   decrypted_token = fernet.decrypt(current_user.canvas_token.encode()).decode()
-    #except Exception as e:
-     #   flash("Error decrypting token. Please reconnect Canvas.", "danger")
-     #   return redirect(url_for('main.connect_canvas'))
-
-
+    #Sets up api call
     headers = {"Authorization": f"Bearer {token}"}
     params = {"enrollment_state": "active"}  # Only include current enrollments
     courses_resp = requests.get("https://uncg.instructure.com/api/v1/courses", headers=headers, params=params)
@@ -1113,6 +1084,7 @@ def canvas_assignments_refresh():
             recent_courses.append(course)
 
     all_assignments = []
+    # Filter and store upcoming assignments
     for course in recent_courses:
         cid = course.get("id")
         assignments_resp = requests.get(
@@ -1133,9 +1105,11 @@ def canvas_assignments_refresh():
     upcoming = []
     past_due = []
 
+    #
     for assignment in all_assignments:
         due_str = assignment.get('due_at')
-        print(due_str)
+        
+        
         if due_str:
             try:
                 due_date = datetime.fromisoformat(due_str.replace('Z', '+00:00'))
@@ -1145,10 +1119,6 @@ def canvas_assignments_refresh():
                     past_due.append(assignment)
             except ValueError:
                 upcoming.append(assignment)  # fallback if date parsing fails
-                #print()
-        else:
-            print("foo")
-            #upcoming.append(assignment)
 
     # Sort each group
     upcoming.sort(key=lambda a: a.get('due_at') or '')
@@ -1162,24 +1132,24 @@ def canvas_assignments_refresh():
     #)
     assignment_list = []
 
+    #adds assignments to db
     for assignmentss in upcoming:
         due_date = datetime.fromisoformat(assignmentss["due_at"]) - timedelta(hours=4)
         assignment = assignments(user_id = session['user_id'], due_date = str(due_date), name = assignmentss["name"], course_code = assignmentss["course_name"])
         db.session.add(assignment)
         db.session.commit()
 
-
+    #adds assignments to a list to be returned as a json
     for assignmentss in upcoming:
         due_date = datetime.fromisoformat(assignmentss["due_at"]) - timedelta(hours=4)
         assignment_list.append(str({"name": assignmentss["name"], "due_at": str(due_date), "course_name": assignmentss["course_name"]}))
         #return jsonify(event_list)
-    #print(upcoming["name"])
-    print("foo", assignment_list)
+    
 
     return jsonify(assignment_list)
 
 
-
+#route pulls a users assignments from db
 @main_blueprint.route('/canvas/assignments')
 @login_required
 def canvas_assignments():
