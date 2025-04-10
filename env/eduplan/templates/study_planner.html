@@ -108,14 +108,14 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
                     {{ modify_form.plan_id(id="plan-id") }}
 
-                    {{ modify_form.date.label }}
-                    {{ modify_form.date }}
+                   
+                    {{ modify_form.date(id="modify-date") }}
 
                     {{ modify_form.start_time.label }}
-                    {{ modify_form.start_time }}
+                    {{ modify_form.start_time(id="modify-start-time") }}
 
                     {{ modify_form.end_time.label }}
-                    {{ modify_form.end_time }}
+                    {{ modify_form.end_time(id="modify-end-time") }}
 
                     {{ modify_form.event_title.label }}
                     {{ modify_form.event_title }}
