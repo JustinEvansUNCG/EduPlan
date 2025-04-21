@@ -23,6 +23,9 @@
                 <li><a href="{{ url_for('main.course_content') }}">Course Selection</a></li>
                 {% if current_user.is_authenticated and current_user.role == 'student' %}
                 <li><a href="{{ url_for('main.browse_courses') }}">Browse Courses</a></li>
+
+                
+
                 {% endif %}
 
 

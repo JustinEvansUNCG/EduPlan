@@ -139,7 +139,7 @@ header .calendar-current-date {
 }
 
 .calendar-dates li.active::before {
-  background: #4287f5;
+  background: #ca8e48;
 }
 
 .calendar-dates li:not(.active):hover::before {
@@ -343,7 +343,7 @@ h2 {
   border-bottom-left-radius: 8px;
   border-radius: 8px;
   color: white;
-  background-color: #216086;
+  background-color: #ca8e48;
   padding: 15px 32px;
   text-align: center;
   text-decoration: none;

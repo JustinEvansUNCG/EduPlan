@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 
-from wtforms import StringField, SubmitField, PasswordField, IntegerField, HiddenField, TimeField, DateField, SelectField, FileField
-from wtforms.validators import DataRequired, Length, Email, ValidationError, EqualTo
+from wtforms import StringField, SubmitField, PasswordField, IntegerField, HiddenField, TimeField, DateField, SelectField, FileField, SelectMultipleField
+from wtforms.validators import DataRequired, Length, Email, ValidationError, EqualTo, InputRequired
 
 from eduplan import db
 from eduplan.models import study_event
@@ -95,3 +95,51 @@ class CanvasTokenForm(FlaskForm):
     submit = SubmitField('Save Token')
 
 
+
+class PreferencesForm(FlaskForm):
+    homework_weeks = SelectField("Homework:", choices=[
+        (0.29, "2–3 days"),
+        (0.71, "5 days–1 week"),
+        (1, "1 week"),
+        (2, "2 weeks")
+    ], coerce=float)
+
+    project_weeks = SelectField("Projects:", choices=[
+        (1, "1 week"),
+        (2, "2 weeks"),
+        (3, "3 weeks"),
+        (4, "4 weeks")
+    ], coerce=float)
+
+    exam_weeks = SelectField("Exams:", choices=[
+        (1, "1 week"),
+        (2, "2 weeks"),
+        (3, "3 weeks"),
+        (4, "4 weeks")
+    ], coerce=float)
+
+    quiz_weeks = SelectField("Quizzes:", choices=[
+        (0.29, "2–3 days"),
+        (0.5, "3–4 days"),
+        (0.71, "5 days–1 week")
+    ], coerce=float)
+
+    no_study_days = SelectMultipleField("Days You Don’t Want to Study", choices=[
+        ("Monday", "Monday"), ("Tuesday", "Tuesday"), ("Wednesday", "Wednesday"),
+        ("Thursday", "Thursday"), ("Friday", "Friday"),
+        ("Saturday", "Saturday"), ("Sunday", "Sunday")
+    ])
+
+    no_study_time_start = TimeField("Block Study Start Time")
+    no_study_time_end = TimeField("Block Study End Time")
+
+    study_time_block = SelectField("When do you prefer to study?", choices=[
+    ("morning", "Morning (6 AM – 12 PM)"),
+    ("afternoon", "Afternoon (12 PM – 5 PM)"),
+    ("evening", "Evening (5 PM – 9 PM)"),
+    ("night", "Night (9 PM – Midnight)")
+])
+
+
+    preferred_study_hours = IntegerField("Preferred Hours of Study per Day", validators=[InputRequired()])
+    submit = SubmitField("Save Preferences")

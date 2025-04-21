@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Study Preferences{% endblock %}
+
+{% block content %}
+<main class="container" style="padding: 2rem;">
+    <h2>Customize Your Study Preferences</h2>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div>{{ form.homework_weeks.label }}<br>{{ form.homework_weeks }}</div>
+        <div>{{ form.project_weeks.label }}<br>{{ form.project_weeks }}</div>
+        <div>{{ form.exam_weeks.label }}<br>{{ form.exam_weeks }}</div>
+        <div>{{ form.quiz_weeks.label }}<br>{{ form.quiz_weeks }}</div>
+
+        <hr>
+
+        <div>{{ form.no_study_days.label }}<br>
+            {{ form.no_study_days(size=7, multiple=True) }}
+        </div>
+
+        <div>{{ form.no_study_time_start.label }}<br>{{ form.no_study_time_start }}</div>
+        <div>{{ form.no_study_time_end.label }}<br>{{ form.no_study_time_end }}</div>
+
+        <div>
+            {{ form.study_time_block.label }}<br>
+            {{ form.study_time_block(class="form-select") }}
+        </div>
+        
+
+        <div>{{ form.preferred_study_hours.label }}<br>{{ form.preferred_study_hours }}</div>
+
+        <div class="mt-3">{{ form.submit(class="btn btn-primary") }}</div>
+    </form>
+    <a href="{{ url_for('main.generated_study_plan') }}" class="btn btn-outline-success mt-3">
+        Generate Study Plan
+    </a>
+    
+</main>
+{% endblock %}
