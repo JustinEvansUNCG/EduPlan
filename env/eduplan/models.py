@@ -52,6 +52,7 @@ class ClassStatus(db.Model):
     grade = db.Column(db.String(3), nullable=True)
     completed = db.Column(db.Boolean)
     credits = db.Column(db.Integer, nullable=True)
+    course_exceptions = db.Column(db.String(40), nullable=True)
 
 
 
