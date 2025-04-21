@@ -236,14 +236,22 @@ def resources():
     ai_response = None
     canvas_courses = []
     current_chat = None
+    messages = []
 
     if chat_id:
         current_chat = ResourceChat.query.filter_by(id=chat_id, user_id=current_user.id).first()
+        if current_chat:
+            messages = CourseResource.query.filter_by(chat_id=current_chat.id).order_by(CourseResource.created_at).all()
 
     try:
         headers = {"Authorization": f"Bearer {canvas_api_token}"}
-        params = {"include[]": "enrollments"}
+        params = {
+            "enrollment_term_id": 467,      # Spring 2025 (or your target term)
+            "per_page": 100,                # Max per request
+            "include[]": "enrollments"
+        }
         res = requests.get(f"{canvas_api_url}/api/v1/courses", headers=headers, params=params)
+
         if res.status_code == 200:
             canvas_courses = [
                 {
@@ -252,7 +260,7 @@ def resources():
                     "enrollments": course.get("enrollments", [{}])[0].get("enrollment_state", "unknown")
                 }
                 for course in res.json()
-                if not course.get("access_restricted_by_date")
+                if not course.get("access_restricted_by_date") and course.get("enrollment_term_id") == 467
             ]
     except Exception as e:
         print(f"Canvas API error: {e}")
@@ -277,6 +285,7 @@ def resources():
             .limit(5)
             .all()
         )
+
 
         context = ""
         for msg in reversed(previous_chats):
@@ -310,14 +319,13 @@ def resources():
         db.session.add(entry)
         db.session.commit()
 
-        return redirect(url_for('main.resources', chat_id=current_chat.id))
+        messages.append(entry)
+        ai_response = markdown.markdown(clean_text)
 
     chats = ResourceChat.query.filter_by(user_id=current_user.id).order_by(ResourceChat.created_at.desc()).all()
-    messages = []
-    if current_chat:
-        messages = CourseResource.query.filter_by(chat_id=current_chat.id).order_by(CourseResource.created_at).all()
 
-    return render_template("resources.html", ai_response=ai_response, canvas_courses=canvas_courses, chats=chats, messages=messages, current_chat=current_chat)
+    return render_template("resources.html", ai_response=ai_response, canvas_courses=canvas_courses, chats=chats, messages=messages, current_chat=current_chat
+    )
 
 @main_blueprint.route("/resources/chat/<int:chat_id>/rename", methods=["POST"])
 @login_required
@@ -343,14 +351,44 @@ def course_content():
     ai_response = None
     transcript_form = TranscriptForm()
 
-    #csc_courses = (
-     #   Course.query
-      #  .filter(Course.course_code.startswith("PSY"))
-       # .order_by(Course.course_code)
-        #.all()
-    #)
-    #course_list = [f"{course.course_code} - {course.course_name}" for course in csc_courses]
-    #course_context = "\n".join(course_list)
+    incomplete_courses = (
+        db.session.query(ClassStatus, Course)
+        .join(Course, ClassStatus.course_code == Course.course_code)
+        .filter(ClassStatus.user_id == current_user.id, ClassStatus.completed == False)
+        .order_by(ClassStatus.course_code)
+        .all()
+    )
+
+    required_classes = []
+
+    transcript = (
+        ClassStatus.query
+        .filter(ClassStatus.user_id == current_user.id)
+        .order_by(ClassStatus.course_code.asc())
+        .all()
+    )
+
+    for status in transcript:
+        if not status.completed:
+            course_codes = status.course_code.split('-')
+            prefix_match = re.match(r"^[A-Z]{3,4}", course_codes[0])
+            if prefix_match and len(course_codes) > 1:
+                prefix = prefix_match.group()
+                options = []
+                for code in course_codes:
+                    number_match = re.search(r"\d{3}", code)
+                    if number_match:
+                        course_code = f"{prefix} {number_match.group()}"
+                        course = Course.query.filter_by(course_code=course_code).first()
+                        if course:
+                            options.append(course)
+                if options:
+                    num_required = status.credits // 3 if status.credits else 1
+                    required_classes.append(("Group", num_required, options))
+            else:
+                course = Course.query.filter_by(course_code=status.course_code).first()
+                if course:
+                    required_classes.append(("Single", 1, [course]))
 
     if request.method == "POST":
         question = request.form.get("question", "").strip()
@@ -371,13 +409,6 @@ def course_content():
         for chat in reversed(previous_chats):
             chat_context += f"User: {chat.question}\nAI: {chat.ai_response}\n"
 
-        transcript = (
-            ClassStatus.query
-            .filter(ClassStatus.user_id == current_user.id)
-            .order_by(ClassStatus.course_code.asc())
-            .all()
-        )
-
         transcript_context_lines = []
         for i, course in enumerate(transcript, start=1):
             if course.completed:
@@ -393,8 +424,6 @@ def course_content():
         transcript_context = "\n".join(transcript_context_lines)
 
         study_prompt = (
-            #f"The student is majoring in psychology.\n\n"
-            #f"Here are the psychology courses available:\n{course_context}\n\n"
             f"Here is the student's academic transcript:\n{transcript_context}\n\n"
             f"Here is the student's previous conversation context:\n{chat_context}\n"
             f"Ensure the question is study-related. If it is not, ask the user to rephrase. "
@@ -425,11 +454,8 @@ def course_content():
             except Exception as e:
                 ai_response = f"Gemini API error: {str(e)}"
 
-    return render_template(
-        "course_content.html",
-        ai_response=ai_response,
-        transcript_form=transcript_form
-    )
+    return render_template( "course_content.html", ai_response=ai_response, transcript_form=transcript_form, required_classes=required_classes)
+
 
 
 

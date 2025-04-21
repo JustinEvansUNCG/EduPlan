@@ -180,7 +180,9 @@
 {% block content %}
 <div class="flex">
   <div class="sidebar">
-    <a href="{{ url_for('main.new_resource_chat') }}" class="new-chat-btn">+ New Chat</a>
+    <form method="POST" action="{{ url_for('main.new_resource_chat')}}">
+      <button type="submit" class="rename-link">New</button>
+    </form>
     <ul class="chat-history">
       {% for chat in chats %}
       <li class="chat-item">
