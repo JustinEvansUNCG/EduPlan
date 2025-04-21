@@ -189,7 +189,7 @@ def sign_up():
             name=form.name.data,
             email=form.email.data,
             password_hash=hash_password,
-            role='admin'
+            role='student'
         )
         db.session.add(user)
         db.session.commit()
@@ -482,7 +482,7 @@ def transcript_reader():
                     break
 
             #A pattern checker that makes sure lines are the lines we want
-            course_code_pattern = "and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]L|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]|and [0-9][0-9][0-9]L|or [0-9][0-9][0-9]L|and [0-9][0-9][0-9]|or [0-9][0-9][0-9]"
+            course_code_pattern = "Except [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|and [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|or [A-Z][A-Z][A-Z] [0-9][0-9][0-9]|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]:[0-9][0-9][0-9]|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]L|[A-Z][A-Z][A-Z] [0-9][0-9][0-9]|and [0-9][0-9][0-9]L|or [0-9][0-9][0-9]L|and [0-9][0-9][0-9]|or [0-9][0-9][0-9]"
             
 
             #Keeps lines that contain the pattern in course_code_pattern
@@ -490,7 +490,8 @@ def transcript_reader():
                 line_check = re.findall(course_code_pattern, item)
 
                 if line_check:
-
+                    
+                    item = item.replace("  ", " ")
                     course_list.append(item)
 
 
@@ -512,7 +513,14 @@ def transcript_reader():
 
 
                 completed_check = re.findall("[a-z][a-z][a-z]\s[0-9]", item)
-                inc_check = re.findall("[1-9][0-9] Credits|[1-9] Credits", item)
+                inc_check = re.findall("[1-9][0-9] Credits|[1-9] Credits| [0-9] Class", item)
+                exception_check = re.findall("Except [A-Z][A-Z][A-Z] [0-9][0-9][0-9]", item)
+                course_exception = 0
+
+                #if exception_check:
+                #    print("foo")
+                #    print("Exceptions: ",exception_check)
+                #    course_exception = 1
                 #grades = list()
 
 
@@ -523,10 +531,25 @@ def transcript_reader():
                     credits = inc_check[0][0] + inc_check[0][1]
                     credits = credits.replace(" ", "")
 
+                    temp_check = ""
+
+                    if credits == "1":
+                        credits = "3"
 
                     if len(line_check) > 1:
                         for i in range(len(line_check)):
                             #If statements below checks how you need to take certain courses, and handles them accordingly
+
+                            if i == 0:
+                                exception_check = 0
+
+                            if "Except" in line_check[i]:
+                                temp_check = line_check[i].replace("Except ", "")
+                                print(temp_check)
+                                exception_check = 1
+                                #incomplete_list[line_check[0]] = ["", 0]
+
+
                             if "and" in line_check[i]:
                                 if len(line_check[i]) < 9:
                                     line_check[i] = line_check[i].replace("and", line_check[0][0:3])
@@ -538,14 +561,19 @@ def transcript_reader():
                                     incomplete_list[line_check[0]] = ["", int(credits) / len(line_check)]
 
                             if "or" in line_check[i]:
-                                if len(line_check[i]) < 8:
+                                if exception_check == 1:
+                                    temp_check = temp_check + "-" + line_check[i][3:6]
+                                    print(temp_check)
+                                    #incomplete_list[line_check[0]] = ["", credits, ]
+
+                                elif len(line_check[i]) < 8:
                                     line_check[0] = line_check[0] + "-" + line_check[i][3:6]
                                 else:
                                     line_check[i] = line_check[i].replace("or ", "")
                                     line_check[0] = line_check[0] + "-" + line_check[i]
 
                                 if i == len(line_check)-1:
-                                    incomplete_list[line_check[0]] = ["", credits]
+                                    incomplete_list[line_check[0]] = ["", credits, temp_check]
 
 
                     #This is the case where u have a specific course to take
@@ -574,7 +602,10 @@ def transcript_reader():
                 if grades[i][0] != "":
                     course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i][0], completed = True)
                 else:
-                    course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i][0], credits=grades[i][1], completed = False)
+                    if len(grades[i]) == 3:
+                        course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i][0], credits=grades[i][1], completed = False, course_exceptions=grades[i][2])
+                    else:
+                        course = ClassStatus(user_id = session['user_id'], course_code = courses[i], grade = grades[i][0], credits=grades[i][1], completed = False)
                 db.session.add(course)
                 db.session.commit()
            
