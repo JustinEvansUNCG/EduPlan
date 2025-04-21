@@ -30,6 +30,44 @@
     </div>
 </div>
 
+<section class="required-courses" style="font-size: 0.9rem; margin-top: 2rem;">
+    <h2 style="font-size: 1.2rem; margin-bottom: 1rem;">Required Courses</h2>
+  
+    {% if required_classes %}
+      {% for req_type, count, courses in required_classes %}
+        {% if req_type == "Group" %}
+          <div class="course-group" style="margin-bottom: 1.2rem; padding: 0.8rem; border: 1px solid #ddd; border-radius: 6px;">
+            <p style="font-weight: bold; margin-bottom: 0.5rem;">Select <strong>{{ count }}</strong> of the following courses:</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+              {% for course in courses %}
+                <a href="{{ url_for('main.browse_courses', search=course.course_code) }}"
+                   style="padding: 0.3rem 0.5rem; font-size: 0.85rem; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9; text-decoration: none; color: #333;">
+                  {{ course.course_code }} — {{ course.course_name }}
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        {% else %}
+          <div class="single-courses" style="margin-bottom: 1.2rem;">
+            {% for course in courses %}
+              <a href="{{ url_for('main.browse_courses', search=course.course_code) }}"
+                 style="display: block; font-size: 0.9rem; padding: 0.4rem 0.7rem; margin-bottom: 0.4rem; border: 1px solid #ccc; border-radius: 5px; background-color: #f4f4f4; text-decoration: none; color: #222;">
+                {{ course.course_code }} — {{ course.course_name }}
+              </a>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      <p>No required courses found.</p>
+    {% endif %}
+  </section>
+  
+
+  
+  
+  
+
 
 
 
