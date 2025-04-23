@@ -11,16 +11,7 @@
 
 <body>
 
-    <!--All errors entered with the flash command will print here, assuming a page uses the base.html file. Also a bootstrap alert is used below-->
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    {% for message in messages %}
-    <div class="alert alert-primary" role="alert">
-        {{ message }}
-    </div>
-    {% endfor %}
-    {% endif %}
-    {% endwith %}
+
 
 
 
@@ -75,7 +66,21 @@
             {% endif %}
         </nav>
 
+
+
     </header>
+
+    <!--All errors entered with the flash command will print here, assuming a page uses the base.html file. Also a bootstrap alert is used below-->
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-primary" role="alert">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
     <div id="content">{% block content %}{% endblock %}</div>
 
     <div id="footer">
