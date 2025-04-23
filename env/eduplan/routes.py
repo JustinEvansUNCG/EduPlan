@@ -187,12 +187,16 @@ def sign_up():
         hash_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         user = User(
             name=form.name.data,
-            email=form.email.data,
+            email=form.email.data.lower(),
             password_hash=hash_password,
             role='student'
         )
-        db.session.add(user)
-        db.session.commit()
+        try:
+            db.session.add(user)
+            db.session.commit()
+        except:
+            flash('Account associated with that email already exists', 'danger')
+            return render_template("signup.html", form=form)
 
         session["user_id"] = user.id # This is needed to keep track of who is signed in
 
@@ -211,7 +215,7 @@ def sign_up():
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data).first()
+        user = User.query.filter_by(email=form.email.data.lower()).first()
         if user and bcrypt.check_password_hash(user.password_hash, form.password.data):
             login_user(user)  # Use Flask-Login's login_user()
             login_user(user)
