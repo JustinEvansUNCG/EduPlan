@@ -723,6 +723,10 @@ const manipulate = () => {
             function event_creation() {
 
 
+                document.getElementById("event-start-time").value = "";
+                document.getElementById("event-end-time").value = "";
+
+                
                 //the 3 lines below allow the day of the week to be shown on the event creation modal
                 var modal = document.getElementById("modal-event-add");
                 modal.querySelector("h2").innerHTML = days[i];
@@ -747,6 +751,9 @@ const manipulate = () => {
                     const start_time = start_time_field.value;
                     console.log(typeof end_time);
                     console.log(start_time);
+
+
+                    
 
                     if (start_time > end_time) {
                         end_time_field.value = '';

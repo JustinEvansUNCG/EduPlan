@@ -162,10 +162,10 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
                     {{ add_form.date(id="event-date") }}
 
                     {{ add_form.start_time.label }}
-                    {{ add_form.start_time(id="event-start-time") }}
+                    {{ add_form.start_time(id="event-start-time", autocomplete="off") }}
 
                     {{ add_form.end_time.label }}
-                    {{ add_form.end_time(id="event-end-time") }}
+                    {{ add_form.end_time(id="event-end-time", autocomplete="off") }}
                 </p>
 
                 <p id="existing-events">
@@ -181,10 +181,10 @@ https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
                 <p id="new-event-info">
 
                     {{ add_form.event_title.label }}
-                    {{ add_form.event_title }}
+                    {{ add_form.event_title(autocomplete="off") }}
 
                     {{ add_form.event_description.label }}
-                    {{ add_form.event_description }}
+                    {{ add_form.event_description(autocomplete="off") }}
 
                 </p>
 
