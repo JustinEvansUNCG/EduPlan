@@ -195,6 +195,7 @@ def sign_up():
             db.session.add(user)
             db.session.commit()
         except:
+            db.session.rollback()
             flash('Account associated with that email already exists', 'danger')
             return render_template("signup.html", form=form)
 
