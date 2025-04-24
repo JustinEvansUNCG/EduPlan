@@ -33,7 +33,7 @@
 
                 {% if current_user.is_authenticated and current_user.role == 'student' and not current_user.canvas_token
                 %}
-                <li><a href="{{ url_for('main.connect_canvas') }}" class="btn btn-warning">Connect Canvas</a></li>
+                <li><a href="{{ url_for('main.profile') }}" class="btn btn-warning">Connect Canvas</a></li>
                 {% endif %}
 
                 {% if current_user.is_authenticated and current_user.role == 'student' %}
