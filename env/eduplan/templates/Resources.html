@@ -190,9 +190,12 @@
           {{ chat.title or 'Untitled Chat' }}
         </a>
         <div class="chat-controls">
-          <form method="POST" action="{{ url_for('main.rename_resource_chat', chat_id=chat.id) }}">
-            <button type="submit" class="rename-link">Rename</button>
+          <form method="POST" action="{{ url_for('main.rename_resource_chat', chat_id=chat.id) }}" class="rename-form" style="display: none;">
+            <input type="text" name="new_title" value="{{ chat.title }}" required style="font-size: 0.8rem; padding: 0.25rem; border: 1px solid #ccc; border-radius: 4px; width: 80%;">
+            <button type="submit" class="rename-link">Save</button>
           </form>
+          <button type="button" class="rename-link" onclick="toggleRenameForm(this)">Rename</button>
+          
           <form method="POST" action="{{ url_for('main.delete_resource_chat', chat_id=chat.id) }}">
             <button type="submit" class="delete-link">Delete</button>
           </form>
@@ -250,5 +253,17 @@
       questionInput.focus();
     }
   };
+
+  
 </script>
+
+<script>
+  function toggleRenameForm(button) {
+    const parent = button.closest(".chat-controls");
+    const form = parent.querySelector(".rename-form");
+    form.style.display = form.style.display === "none" ? "flex" : "none";
+    button.style.display = "none";
+  }
+</script>
+
 {% endblock %}
