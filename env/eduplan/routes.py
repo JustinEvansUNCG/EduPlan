@@ -237,7 +237,6 @@ def login():
 @login_required
 def resources():
     chat_id = request.args.get("chat_id")
-    ai_response = None
     canvas_courses = []
     current_chat = None
     messages = []
@@ -250,12 +249,11 @@ def resources():
     try:
         headers = {"Authorization": f"Bearer {canvas_api_token}"}
         params = {
-            "enrollment_term_id": 467,      # Spring 2025 (or your target term)
-            "per_page": 100,                # Max per request
+            "enrollment_term_id": 467,
+            "per_page": 100,
             "include[]": "enrollments"
         }
         res = requests.get(f"{canvas_api_url}/api/v1/courses", headers=headers, params=params)
-
         if res.status_code == 200:
             canvas_courses = [
                 {
@@ -290,7 +288,6 @@ def resources():
             .all()
         )
 
-
         context = ""
         for msg in reversed(previous_chats):
             context += f"User: {msg.question}\nAI: {msg.ai_response}\n"
@@ -323,13 +320,15 @@ def resources():
         db.session.add(entry)
         db.session.commit()
 
-        messages.append(entry)
-        ai_response = markdown.markdown(clean_text)
+        messages = CourseResource.query.filter_by(chat_id=current_chat.id).order_by(CourseResource.created_at).all()
 
     chats = ResourceChat.query.filter_by(user_id=current_user.id).order_by(ResourceChat.created_at.desc()).all()
 
-    return render_template("resources.html", ai_response=ai_response, canvas_courses=canvas_courses, chats=chats, messages=messages, current_chat=current_chat
-    )
+    for msg in messages:
+        msg.ai_response = markdown.markdown(msg.ai_response)
+
+    return render_template("resources.html", canvas_courses=canvas_courses, chats=chats, messages=messages, current_chat=current_chat)
+
 
 @main_blueprint.route("/resources/chat/<int:chat_id>/rename", methods=["POST"])
 @login_required
