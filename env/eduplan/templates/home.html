@@ -7,7 +7,8 @@
 {% block content %}
 <section class="welcome-section">
     <h1>Welcome to EduPlan</h1>
-    <p>Your personalized academic planning assistant. Streamline your course selection and study plans with AI-powered recommendations to stay on track toward graduation.</p>
+    <p>Your personalized academic planning assistant. Streamline your course selection and study plans with AI-powered
+        recommendations to stay on track toward graduation.</p>
 
     {% if not current_user.is_authenticated %}
     <a href="{{ url_for('main.sign_up') }}" class="btn btn-primary">Sign Up Today</a>
@@ -41,6 +42,7 @@
             <li>Track your academic journey and adjust your plan anytime.</li>
         </ol>
     </div>
+
 </div>
 
 
