@@ -593,7 +593,8 @@ const manipulate = () => {
                     if (start_time > end_time) {
                         end_time_field.value = '';
                     }
-                    const other_events_today = event_object.parentElement.querySelectorAll(".flex-event");;
+                    const other_events_today = event_object.parentElement.querySelectorAll(".flex-event");
+
                     for (let j = 0; j < other_events_today.length; j++) {
                         console.log(other_events_today[j].querySelector(".time-data"));
                         let event_date_data = other_events_today[j].querySelector(".time-data").innerHTML;
@@ -608,7 +609,7 @@ const manipulate = () => {
 
 
                         console.log(event_date_array[1]);
-                        if (event_date_array[0] <= start_time && event_date_array[1] >= start_time) {
+                        if (event_date_array[0] <= start_time && event_date_array[1] >= start_time && plan_id[j] != plan_id[i]) { //
                             let start_time_revised;
                             if (event_date_end[1] != "59") {
                                 start_time_revised = event_date_end[0] + ":" + String(parseInt(event_date_end[1]) + 1);
@@ -621,7 +622,7 @@ const manipulate = () => {
                         }
 
 
-                        if (event_date_array[0] > start_time && event_date_array[1] < end_time || event_date_array[0] <= end_time && event_date_array[1] >= end_time) {
+                        if (event_date_array[0] > start_time && event_date_array[1] < end_time || event_date_array[0] <= end_time && event_date_array[1] >= end_time  && plan_id[j] != plan_id[i]) {
                             let end_time_revised;
                             if (event_date_start[1] != "00") {
                                 end_time_revised = event_date_start[0] + ":" + (event_date_start[1] - 1);
@@ -1202,11 +1203,6 @@ function day_view(all_days, i) {
 
 
     }
-
-
-
-
-
 
 }
 
