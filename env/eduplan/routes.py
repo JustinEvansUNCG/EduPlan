@@ -83,10 +83,6 @@ def index():
 @main_blueprint.route("/study_planner", methods=["GET", "POST"])
 @login_required
 def study_planner():
-    print(session["user_id"])
-    print(session["user_id"])
-    print(session["user_id"])
-    print(session["user_id"])
 
     #forms below are all initialized here so they can be displayed
     form = EventDeleteForm(request.form)

@@ -14,6 +14,8 @@ let events;
 let user_events_json;
 
 
+
+
 //Global variable to store current day being viewed in modal
 var modal_day = -1;
 
@@ -92,10 +94,26 @@ async function getEvents() {
             console.error('Error:', error);
         });
 
+
+
+
 }
 getEvents();
 
+//gets events from db
+fetch('/api/events')
+    .then(response => response.json())
+    .then(data => {
+        // Parses the data, making it usable
+        events = "[" + String(data) + "]";
+        events = events.replaceAll("'", '"');
+        user_events_json = JSON.parse(events);
 
+
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
 
 
 //gets events from db
@@ -564,6 +582,10 @@ const manipulate = () => {
             //event_object.addEventListener("click", check_events);
             event_object.addEventListener("click", async () => {
 
+
+                document.getElementById("modify-start-time").value = "";
+                document.getElementById("modify-end-time").value = "";
+
                 var modal = document.getElementById("event-modify-popup");
                 modal.style.display = "block";
 
@@ -583,6 +605,7 @@ const manipulate = () => {
                 console.log(temp_date);
                 date_field = document.getElementById("modify-date");
                 date_field.value = temp_date;
+                console.log(plan_id);
 
                 function time_validity_check(event) {
                     const end_time = end_time_field.value;
@@ -594,6 +617,7 @@ const manipulate = () => {
                         end_time_field.value = '';
                     }
                     const other_events_today = event_object.parentElement.querySelectorAll(".flex-event");
+                    console.log(event_object.parentElement);
 
                     for (let j = 0; j < other_events_today.length; j++) {
                         console.log(other_events_today[j].querySelector(".time-data"));
@@ -605,25 +629,32 @@ const manipulate = () => {
                         const event_date_start = event_date_array[0].split(":");
                         const event_date_end = event_date_array[1].split(":");
 
-                        console.log(event_date_start[1] - 1);
 
-
-                        console.log(event_date_array[1]);
-                        if (event_date_array[0] <= start_time && event_date_array[1] >= start_time && plan_id[j] != plan_id[i]) { //
+                        console.log(other_events_today);
+                        if (event_date_array[0] <= start_time && event_date_array[1] >= start_time && other_events_today[j] != event_object) { //
                             let start_time_revised;
+                            console.log("foo2");
                             if (event_date_end[1] != "59") {
                                 start_time_revised = event_date_end[0] + ":" + String(parseInt(event_date_end[1]) + 1);
                             } else {
                                 start_time_revised = (event_date_end[0] + 1) + ":00";
                             }
-                            
+
+                            console.log(start_time_revised);
                             start_time_field.value = start_time_revised;
 
                         }
 
 
-                        if (event_date_array[0] > start_time && event_date_array[1] < end_time || event_date_array[0] <= end_time && event_date_array[1] >= end_time  && plan_id[j] != plan_id[i]) {
+                        if (event_date_array[0] > start_time && event_date_array[1] < end_time && other_events_today[j] != event_object || event_date_array[0] <= end_time && event_date_array[1] >= end_time && other_events_today[j] != event_object) {
                             let end_time_revised;
+                            console.log(event_date_array[0]);
+                            console.log(start_time);
+                            console.log(event_date_array[1]);
+                            console.log(end_time);
+                            console.log(plan_id[j]);
+                            console.log(plan_id[i]);
+                            
                             if (event_date_start[1] != "00") {
                                 end_time_revised = event_date_start[0] + ":" + (event_date_start[1] - 1);
                             } else {
@@ -727,7 +758,7 @@ const manipulate = () => {
                 document.getElementById("event-start-time").value = "";
                 document.getElementById("event-end-time").value = "";
 
-                
+
                 //the 3 lines below allow the day of the week to be shown on the event creation modal
                 var modal = document.getElementById("modal-event-add");
                 modal.querySelector("h2").innerHTML = days[i];
@@ -754,7 +785,7 @@ const manipulate = () => {
                     console.log(start_time);
 
 
-                    
+
 
                     if (start_time > end_time) {
                         end_time_field.value = '';
@@ -877,7 +908,7 @@ const manipulate = () => {
                         .then(response => response)
                         .then(data => console.log(data))
                         .catch(error => console.log(error));
-
+                    //bozo
                     //function below resets the calendarto show new events, and deals with any rogue event listeners
                     const func = async () => {
                         await getEvents();
