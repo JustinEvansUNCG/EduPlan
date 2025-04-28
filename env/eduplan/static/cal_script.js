@@ -616,7 +616,7 @@ const manipulate = () => {
                             } else {
                                 start_time_revised = (event_date_end[0] + 1) + ":00";
                             }
-                            //console.log(start_time_revised);
+                            
                             start_time_field.value = start_time_revised;
 
                         }
@@ -814,6 +814,11 @@ const manipulate = () => {
 
                 var new_event_btn = document.getElementById("new-event-btn");
                 new_event_btn.addEventListener("click", new_event_displayer);
+
+                if (user_events_json.length === 0) {
+                    new_event_displayer();
+                    document.getElementById("new-event-deactivate").style.display = "none";
+                }
 
                 //when activated, will allow a user to make a planned_event with a new event
                 function new_event_displayer() {
