@@ -8,7 +8,7 @@ body {
 }
 
 header {
-    background-color: #0BA67A;
+    background-color: #216086;
     color: black;
     text-align: center;
     padding:   10px 0;
@@ -78,7 +78,7 @@ section button:hover {
 }
 
 footer {
-    background-color: #0BA67A;
+    background-color: #216086 ;
     color: #fff;
     text-align: center;
     padding: 20px 0;
@@ -152,7 +152,7 @@ footer {
 
 
 #logout {
-    background-color: #216086 ;
+    background-color: 216086 ;
     color: #fff;
     text-align: center;
     font-size: large;
@@ -162,7 +162,7 @@ nav.navbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #0BA67A;
+    background-color: #216086;
     padding: 10px 20px;
 }
 
@@ -237,7 +237,7 @@ html, body {
   .user-circle {
     width: 40px;
     height: 40px;
-    background-color:  #1C7ED6;
+    background-color: #007bff;
     color: white;
     border-radius: 50%;
     text-align: center;

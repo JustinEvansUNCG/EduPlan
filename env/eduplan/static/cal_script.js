@@ -23,8 +23,6 @@ var modal_day = -1;
 //the fetch below gets the data from study_event and study_time and puts it into json format
 
 
-
-
 async function getAssignments() {
     console.log("test");
     await fetch('/canvas/assignments')
@@ -110,6 +108,12 @@ fetch('/api/events')
         events = "[" + String(data) + "]";
         events = events.replaceAll("'", '"');
         user_events_json = JSON.parse(events);
+
+
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
 
 
 //gets events from db
@@ -1237,4 +1241,3 @@ function day_view(all_days, i) {
     }
 
 }
-
