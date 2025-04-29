@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Study Plan{% endblock %}
+
+{% block content %}
+<style>
+  .study-plan-container {
+    padding: 2rem;
+    max-width: 850px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .study-plan-container h2 {
+    color: #ca8e48;
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+  }
+
+  .study-plan-container .timestamp {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 1rem;
+  }
+
+  .study-plan-container .buttons {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .study-plan-output {
+    background: #f9f9f9;
+    padding: 1.5rem;
+    border-radius: 10px;
+    font-size: 1rem;
+    line-height: 1.7;
+    border: 1px solid #ddd;
+  }
+
+  .study-plan-output h5 {
+    color: #ca8e48;
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .study-plan-output li {
+    margin-left: 1.25rem;
+    list-style-type: disc;
+  }
+
+  .study-plan-output p {
+    margin-bottom: 0.8rem;
+  }
+
+  .study-plan-output br {
+    margin-bottom: 0.8rem;
+    display: block;
+    content: " ";
+  }
+
+  .btn {
+    padding: 0.6rem 1.2rem;
+    font-size: 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+  }
+
+  .btn-danger {
+    background-color: #e74c3c;
+    color: #fff;
+    border: none;
+  }
+
+  .btn-outline-secondary {
+    border: 1px solid #ccc;
+    background-color: transparent;
+    color: #444;
+  }
+
+  .btn:hover {
+    opacity: 0.9;
+  }
+</style>
+
+<main class="study-plan-container">
+  <h2>Your Personalized Study Plan</h2>
+
+  {% if last_updated %}
+    <div class="timestamp">
+      <strong>Last generated:</strong> {{ last_updated.strftime('%B %d, %Y at %I:%M %p') }}
+    </div>
+  {% endif %}
+
+  <div class="buttons">
+    <a href="{{ url_for('main.generated_study_plan', regenerate='true') }}" class="btn btn-danger">
+      Regenerate Plan
+    </a>
+    <a href="{{ url_for('main.preferences') }}" class="btn btn-outline-secondary">
+      Edit Preferences
+    </a>
+    <form action="{{ url_for('main.generate_study_time') }}" method="POST" style="margin-left: auto;">
+      <button type="submit" class="btn btn-success">
+        📅 Add AI-Suggested Study Time to Schedule
+      </button>
+    </form>
+  </div>
+
+
+  {% if study_plan %}
+    <div class="study-plan-output">
+      {% for line in study_plan.split('\n') %}
+        {% if line.startswith("Day") %}
+          <h5>{{ line }}</h5>
+        {% elif line.startswith("-") %}
+          <li>{{ line[2:] }}</li>
+        {% elif line.strip() == "" %}
+          <br>
+        {% else %}
+          <p>{{ line }}</p>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No study plan found.</p>
+  {% endif %}
+</main>
+{% endblock %}

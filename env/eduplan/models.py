@@ -107,11 +107,24 @@ class StudyPreference(db.Model):
     __tablename__ = 'study_preferences'
 
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-    no_study_days = db.Column(db.ARRAY(db.String))  # List of days user doesn't want to study
-    no_study_time_start = db.Column(db.Time)
-    no_study_time_end = db.Column(db.Time)
-    preferred_study_hours = db.Column(db.Integer, nullable=False)
-    last_modified = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Weekly study preferences by assignment type
+    homework_weeks = db.Column(db.Float, default=1.0)
+    project_weeks = db.Column(db.Float, default=3.0)
+    exam_weeks = db.Column(db.Float, default=2.0)
+    quiz_weeks = db.Column(db.Float, default=0.43)  # ~3 days
+
+    # Personal schedule preferences
+    no_study_days = db.Column(db.ARRAY(db.String))  # e.g., ["Saturday", "Sunday"]
+    no_study_time_start = db.Column(db.Time)        # e.g., time(18, 0)
+    no_study_time_end = db.Column(db.Time)          # e.g., time(21, 0)
+    preferred_study_hours = db.Column(db.Integer, nullable=False, default=2)
+    study_time_block = db.Column(db.String, default="afternoon")  # morning, afternoon, evening, night
+
+    last_modified = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    user = db.relationship("User", backref="study_preferences", uselist=False)
+
+
 
     def __repr__(self):
         return f"<StudyPreference User:{self.user_id}>"
@@ -216,5 +229,16 @@ class FavoriteCourse(db.Model):
 
     user = db.relationship('User', backref='favorite_courses')
     course = db.relationship('Course')
+
+class SavedStudyPlan(db.Model):
+    __tablename__ = 'saved_study_plans'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    generated_on = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", backref="study_plan", uselist=False)
+
 
 

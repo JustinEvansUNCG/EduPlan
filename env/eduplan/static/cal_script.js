@@ -1241,4 +1241,3 @@ function day_view(all_days, i) {
     }
 
 }
-

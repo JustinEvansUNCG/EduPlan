@@ -1,10 +1,10 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session, current_app
 from eduplan import bcrypt
 
-from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, TranscriptForm, CourseCatalogUploadForm, EditCourseForm, CanvasTokenForm
+from eduplan.forms import TodoForm, todos, RegisterForm, LoginForm, EventDeleteForm, EventAddForm, EventModifyForm, LogoutForm, TranscriptForm, CourseCatalogUploadForm, EditCourseForm, CanvasTokenForm, PreferencesForm
 
 from eduplan import db
-from eduplan.models import study_time, study_event, User, CourseContentAssistance, ClassStatus,CourseResource, assignments, ResourceChat, FavoriteCourse
+from eduplan.models import study_time, study_event, User, CourseContentAssistance, ClassStatus,CourseResource, assignments, ResourceChat, FavoriteCourse, assignments, StudyPreference, SavedStudyPlan
 from flask_bcrypt import Bcrypt
 import google.generativeai as genai
 import re
@@ -27,9 +27,10 @@ from cryptography.fernet import Fernet
 from math import ceil
 from sqlalchemy import or_
 
-
+from flask_mail import Message
+from eduplan import mail
 import filetype
-
+from sqlalchemy import cast, Date
 
 
 
@@ -68,7 +69,12 @@ def home():
     return render_template('home.html')
    
 
-
+@main_blueprint.route('/test-email')
+def test_email():
+    msg = Message("Hello from Flask", recipients=["regriffin@uncg.edu"])
+    msg.body = "This is a test email sent from your Flask app using Gmail SMTP!"
+    mail.send(msg)
+    return "Email sent!"
 
 @main_blueprint.route("/index", methods=["GET", "POST"])
 def index():
@@ -185,7 +191,7 @@ def sign_up():
             name=form.name.data,
             email=form.email.data.lower(),
             password_hash=hash_password,
-            role='student'
+            role='admin'
         )
         try:
             db.session.add(user)
@@ -1023,7 +1029,7 @@ def list_courses():
     )
 
 
-@main_blueprint.route('/course/<int:course_id>/edit', methods=['GET', 'POST'])
+@main_blueprint.route('/course/edit/<int:course_id>', methods=['GET', 'POST'])
 @admin_required
 def edit_course(course_id):
     course = Course.query.get_or_404(course_id)
@@ -1035,19 +1041,16 @@ def edit_course(course_id):
         course.department = form.department.data
         course.description = form.description.data
         course.prerequisites = form.prerequisites.data
-        course.credits = form.credits.data
         course.corequisites = form.corequisites.data
+        course.credits = form.credits.data
         db.session.commit()
         flash('Course updated successfully!', 'success')
         return redirect(url_for('main.list_courses'))
 
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return render_template("edit_course_modal.html", form=form, course=course)
-
-    return redirect(url_for('main.list_courses'))
+    return render_template('edit_course.html', form=form, course=course)
 
 
-@main_blueprint.route('/course/<int:course_id>/delete', methods=['POST'])
+@main_blueprint.route('/course/<int:course_id>/delete', methods=['GET', 'POST'])
 @admin_required
 def delete_course(course_id):
     course = Course.query.get_or_404(course_id)
@@ -1059,7 +1062,7 @@ def delete_course(course_id):
 @main_blueprint.route('/course/add', methods=['GET', 'POST'])
 @admin_required
 def add_course():
-    form = EditCourseForm()
+    form = EditCourseForm()  
 
     if form.validate_on_submit():
         new_course = Course(
@@ -1076,10 +1079,9 @@ def add_course():
         flash('New course added!', 'success')
         return redirect(url_for('main.list_courses'))
 
-    if request.headers.get("X-Requested-With") =="XMLHttpRequest":
-        return render_template("add_course_modal.html", form=form)
+    # No need for XMLHttpRequest check anymore since we are NOT using modals
+    return render_template("add_course.html", form=form)
 
-    return redirect('main.list_courses')
 
 #canvas routes
 @main_blueprint.route('/connect-canvas', methods=['GET', 'POST'])
@@ -1323,3 +1325,196 @@ def browse_courses():
     courses = pagination.items
 
     return render_template("browse_courses.html", courses=courses, pagination=pagination)
+
+
+
+
+@main_blueprint.route("/generated-study-plan", methods=["GET", "POST"])
+@login_required
+def generated_study_plan():
+
+    regenerate = request.args.get("regenerate") == "true"
+
+    # Check if a saved plan exists
+    saved = SavedStudyPlan.query.filter_by(user_id=current_user.id).first()
+    if saved and not regenerate:
+        return render_template("generated_study_plan.html", study_plan=saved.content, last_updated=saved.generated_on)
+
+    # Else: generate a new plan
+    now = datetime.utcnow().date()
+    assignments_list = assignments.query.filter(
+        assignments.user_id == current_user.id,
+        cast(assignments.due_date, Date) >= now
+    ).all()
+
+    if not assignments_list:
+        return render_template("generated_study_plan.html", study_plan="No upcoming assignments found.")
+
+    prefs = StudyPreference.query.filter_by(user_id=current_user.id).first()
+    hw_weeks = prefs.homework_weeks if prefs else 1
+    proj_weeks = prefs.project_weeks if prefs else 3
+    exam_weeks = prefs.exam_weeks if prefs else 2
+    quiz_weeks = prefs.quiz_weeks if prefs else 0.43
+    no_days = prefs.no_study_days or []
+    blocked_start = prefs.no_study_time_start.strftime('%I:%M %p') if prefs.no_study_time_start else None
+    blocked_end = prefs.no_study_time_end.strftime('%I:%M %p') if prefs.no_study_time_end else None
+    preferred_hours = prefs.preferred_study_hours if prefs else 2
+    time_block = prefs.study_time_block if prefs else "afternoon"
+
+    category_keywords = {
+        "exam": ["exam", "final", "midterm", "test"],
+        "project": ["project", "presentation", "report"],
+        "quiz": ["quiz", "pop quiz"],
+        "assignment": ["assignment", "homework", "problem set"]
+    }
+
+    def categorize(name, description=""):
+        name = name.lower()
+        description = description.lower()
+        for cat, words in category_keywords.items():
+            if any(w in name or w in description for w in words):
+                return cat
+        return "assignment"
+
+    formatted = []
+    for a in assignments_list:
+        category = categorize(a.name, getattr(a, "description", ""))
+        due = datetime.fromisoformat(a.due_date).strftime('%B %d, %Y at %I:%M %p')
+        formatted.append(f"- {a.name} ({category}) for {a.course_code}, due on {due}")
+
+    prompt = f"""
+You are helping a student create a 30-day study plan.
+
+Preferences:
+- Homework: {hw_weeks} weeks
+- Projects: {proj_weeks} weeks
+- Exams: {exam_weeks} weeks
+- Quizzes: {quiz_weeks} weeks
+- Avoid days: {', '.join(no_days) if no_days else "none"}
+- Avoid time: {blocked_start}–{blocked_end if blocked_end else ''}
+- Preferred study time: {time_block}
+- Max {preferred_hours} hour(s) per day
+
+Assignments:
+{chr(10).join(formatted)}
+
+Generate a daily plan with tasks for each day.
+"""
+
+    # Call Gemini
+    genai.configure(api_key=gemini_key)
+    model = GenerativeModel("gemini-1.5-flash")
+    try:
+        response = model.generate_content(prompt)
+        study_plan = response.text
+
+        if saved:
+            saved.content = study_plan
+            saved.generated_on = datetime.utcnow()
+        else:
+            saved = SavedStudyPlan(user_id=current_user.id, content=study_plan)
+            db.session.add(saved)
+
+        db.session.commit()
+    except Exception as e:
+        study_plan = f"Error generating plan: {e}"
+
+    return render_template(
+    "generated_study_plan.html",
+    study_plan=study_plan,
+    last_updated=saved.generated_on if saved else None
+)
+
+
+
+@main_blueprint.route("/preferences", methods=["GET", "POST"])
+@login_required
+def preferences():
+    prefs = StudyPreference.query.filter_by(user_id=current_user.id).first()
+    if not prefs:
+        prefs = StudyPreference(user_id=current_user.id)
+        db.session.add(prefs)
+        db.session.commit()
+
+    form = PreferencesForm(obj=prefs)
+
+    if form.validate_on_submit():
+        prefs.homework_weeks = form.homework_weeks.data
+        prefs.project_weeks = form.project_weeks.data
+        prefs.exam_weeks = form.exam_weeks.data
+        prefs.quiz_weeks = form.quiz_weeks.data
+
+        prefs.no_study_days = form.no_study_days.data
+        prefs.no_study_time_start = form.no_study_time_start.data
+        prefs.no_study_time_end = form.no_study_time_end.data
+        prefs.preferred_study_hours = form.preferred_study_hours.data
+
+        db.session.commit()
+        flash("Study preferences updated!", "success")
+
+    return render_template("preferences.html", form=form)
+
+
+category_keywords = {
+    "exam": ["exam", "final", "midterm", "test"],
+    "project": ["project", "presentation", "report"],
+    "quiz": ["quiz", "pop quiz"],
+    "assignment": ["assignment", "homework", "problem set"]
+}
+
+def categorize_assignment(name, description=""):
+    name = name.lower()
+    description = description.lower()
+    for category, keywords in category_keywords.items():
+        if any(kw in name or kw in description for kw in keywords):
+            return category
+    return "assignment"
+
+
+
+@main_blueprint.route("/ai-study-time", methods=["GET"])
+@login_required
+def ai_study_time():
+    # Get the saved study plan
+    saved_plan = SavedStudyPlan.query.filter_by(user_id=current_user.id).first()
+    if not saved_plan or not saved_plan.content:
+        return jsonify({"error": "No study plan found."}), 404
+
+    # Get the study preferences
+    preferences = StudyPreference.query.filter_by(user_id=current_user.id).first()
+    if not preferences or not preferences.preferred_study_hours:
+        return jsonify({"error": "No preferred study time found."}), 404
+
+    preferred_range = preferences.preferred_study_hours  # e.g., "16:00–22:00"
+
+    # Build prompt to AI
+    prompt = f"""
+You are a helpful academic assistant.
+
+Here is the student's current study plan (one task per day):
+
+{saved_plan.content}
+
+The student prefers to study daily between {preferred_range}.
+
+1. Choose one consistent 2-hour block **within that range** (e.g., 18:00–20:00).
+2. Assign that time block to each task in the plan.
+
+Format the final output EXACTLY like this:
+- April 28 (18:00–20:00): Study for MATH test
+- April 29 (18:00–20:00): Finish CS project
+
+Only return the updated plan in that format. Do not include any explanation or extra text.
+"""
+
+
+    try:
+        from google.generativeai import GenerativeModel
+        genai.configure(api_key=gemini_key)
+        model = GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
+        revised_plan = response.text.strip()
+    except Exception as e:
+        return jsonify({"error": "AI generation failed", "details": str(e)}), 500
+
+    return jsonify({"study_plan_with_times": revised_plan})
