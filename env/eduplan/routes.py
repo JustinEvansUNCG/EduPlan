@@ -350,79 +350,67 @@ def course_content():
     from .models import Course
     ai_response = None
     transcript_form = TranscriptForm()
-
-    incomplete_courses = (
-        db.session.query(ClassStatus, Course)
-        .join(Course, ClassStatus.course_code == Course.course_code)
-        .filter(ClassStatus.user_id == current_user.id, ClassStatus.completed == False)
-        .order_by(ClassStatus.course_code)
-        .all()
-    )
-
+    transcript = ClassStatus.query.filter_by(user_id=current_user.id).order_by(ClassStatus.course_code).all()
     required_classes = []
-
-    transcript = (
-        ClassStatus.query
-        .filter(ClassStatus.user_id == current_user.id)
-        .order_by(ClassStatus.course_code.asc())
-        .all()
-    )
-
+    single_required = set()
     for status in transcript:
-        if not status.completed:
-            course_codes = status.course_code.split('-')
-            prefix_match = re.match(r"^[A-Z]{3,4}", course_codes[0])
-            if prefix_match and len(course_codes) > 1:
-                prefix = prefix_match.group()
-                options = []
-                for code in course_codes:
-                    number_match = re.search(r"\d{3}", code)
-                    if number_match:
-                        course_code = f"{prefix} {number_match.group()}"
-                        course = Course.query.filter_by(course_code=course_code).first()
-                        if course:
-                            options.append(course)
-                if options:
-                    num_required = status.credits // 3 if status.credits else 1
-                    required_classes.append(("Group", num_required, options))
-            else:
-                course = Course.query.filter_by(course_code=status.course_code).first()
-                if course:
-                    required_classes.append(("Single", 1, [course]))
-
+        if status.completed:
+            continue
+        raw = status.course_code
+        exc_set = set()
+        if status.course_exceptions:
+            for ex in status.course_exceptions.split(','):
+                ex = ex.strip()
+                m = re.match(r'^([A-Z]{3,4})\s*(\d+):(\d+)$', ex)
+                if m:
+                    p, lo, hi = m.groups()
+                    exc_set |= {(p, n) for n in range(int(lo), int(hi)+1)}
+                else:
+                    m2 = re.match(r'^([A-Z]{3,4})\s*(\d+)$', ex)
+                    if m2:
+                        exc_set.add((m2.group(1), int(m2.group(2))))
+        m0 = re.match(r'^([A-Z]{3,4})\s*(.+)$', raw)
+        if not m0:
+            continue
+        prefix, spec = m0.groups()
+        parts = spec.split('-')
+        nums = set()
+        for part in parts:
+            if ':' in part:
+                lo, hi = part.split(':', 1)
+                if lo.isdigit() and hi.isdigit():
+                    nums |= set(range(int(lo), int(hi)+1))
+            elif part.isdigit():
+                nums.add(int(part))
+        if len(nums) > 1:
+            candidates = Course.query.filter(Course.course_code.startswith(prefix + ' ')).all()
+            options = []
+            for c in candidates:
+                mcode = re.search(r'\d+', c.course_code)
+                if mcode:
+                    n = int(mcode.group())
+                    if n in nums and (prefix, n) not in exc_set and c.course_code not in single_required:
+                        options.append(c)
+            if options:
+                cnt = status.credits // 3 if status.credits else len(options)
+                if any(c.course_code in ('PSY 311', 'PSY 410') for c in options):
+                    cnt += 1
+                required_classes.append(("Group", cnt, options))
+        else:
+            course = Course.query.filter_by(course_code=raw).first()
+            if course:
+                single_required.add(course.course_code)
+                required_classes.append(("Single", 1, [course]))
     if request.method == "POST":
-        question = request.form.get("question", "").strip()
-        if not question:
-            question = "Explain a general study tip."
-
+        question = request.form.get("question", "").strip() or "Explain a general study tip."
         one_day_ago = datetime.utcnow() - timedelta(days=1)
-        previous_chats = (
-            CourseContentAssistance.query
-            .filter_by(user_id=current_user.id)
-            .filter(CourseContentAssistance.created_at >= one_day_ago)
-            .order_by(CourseContentAssistance.created_at.desc())
-            .limit(5)
-            .all()
+        prev = CourseContentAssistance.query.filter_by(user_id=current_user.id).filter(CourseContentAssistance.created_at >= one_day_ago).order_by(CourseContentAssistance.created_at.desc()).limit(5).all()
+        chat_context = "".join(f"User: {c.question}\nAI: {c.ai_response}\n" for c in reversed(prev))
+        transcript_context = "\n".join(
+            f"{i+1}. {c.course_code} - Grade: {c.grade} (Completed)" if c.completed
+            else f"{i+1}. {c.course_code} - Required: Not Yet Taken ({c.credits} credits)"
+            for i, c in enumerate(transcript)
         )
-
-        chat_context = ""
-        for chat in reversed(previous_chats):
-            chat_context += f"User: {chat.question}\nAI: {chat.ai_response}\n"
-
-        transcript_context_lines = []
-        for i, course in enumerate(transcript, start=1):
-            if course.completed:
-                transcript_context_lines.append(
-                    f"{i}. {course.course_code} - Grade: {course.grade} (Completed)"
-                )
-            else:
-                credits = f"{course.credits} credits" if course.credits else "Credits unknown"
-                transcript_context_lines.append(
-                    f"{i}. {course.course_code} - Required: Not Yet Taken ({credits})"
-                )
-
-        transcript_context = "\n".join(transcript_context_lines)
-
         study_prompt = (
             f"Here is the student's academic transcript:\n{transcript_context}\n\n"
             f"Here is the student's previous conversation context:\n{chat_context}\n"
@@ -430,32 +418,17 @@ def course_content():
             f"If it is, just answer the question with a short response unless the student asks for more detail\n"
             f"New Question: {question}"
         )
-
-        blocked_keywords = ["game", "movie", "politics", "news", "celebrity"]
-        if any(keyword in question.lower() for keyword in blocked_keywords):
+        if any(k in question.lower() for k in ["game", "movie", "politics", "news", "celebrity"]):
             ai_response = "This question doesn't seem related to studies. Please ask about a study-related topic."
         else:
             model = genai.GenerativeModel("gemini-2.0-flash")
-            try:
-                response = model.generate_content(study_prompt)
-                if response and response.text:
-                    clean_text = response.text.strip()
-                    ai_response = markdown.markdown(clean_text)
-
-                    entry = CourseContentAssistance(
-                        user_id=current_user.id,
-                        question=question,
-                        ai_response=clean_text
-                    )
-                    db.session.add(entry)
-                    db.session.commit()
-                else:
-                    ai_response = "Error processing AI response."
-            except Exception as e:
-                ai_response = f"Gemini API error: {str(e)}"
-
-    return render_template( "course_content.html", ai_response=ai_response, transcript_form=transcript_form, required_classes=required_classes)
-
+            response = model.generate_content(study_prompt)
+            clean = response.text.strip() if response and response.text else ""
+            ai_response = markdown.markdown(clean)
+            entry = CourseContentAssistance(user_id=current_user.id, question=question, ai_response=clean)
+            db.session.add(entry)
+            db.session.commit()
+    return render_template("course_content.html", ai_response=ai_response, transcript_form=transcript_form, required_classes=required_classes)
 
 
 
