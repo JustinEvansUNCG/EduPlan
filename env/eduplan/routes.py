@@ -191,7 +191,7 @@ def sign_up():
             name=form.name.data,
             email=form.email.data.lower(),
             password_hash=hash_password,
-            role='student'
+            role='admin'
         )
         try:
             db.session.add(user)
@@ -1029,7 +1029,7 @@ def list_courses():
     )
 
 
-@main_blueprint.route('/course/<int:course_id>/edit', methods=['GET', 'POST'])
+@main_blueprint.route('/course/edit/<int:course_id>', methods=['GET', 'POST'])
 @admin_required
 def edit_course(course_id):
     course = Course.query.get_or_404(course_id)
@@ -1041,19 +1041,16 @@ def edit_course(course_id):
         course.department = form.department.data
         course.description = form.description.data
         course.prerequisites = form.prerequisites.data
-        course.credits = form.credits.data
         course.corequisites = form.corequisites.data
+        course.credits = form.credits.data
         db.session.commit()
         flash('Course updated successfully!', 'success')
         return redirect(url_for('main.list_courses'))
 
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return render_template("edit_course_modal.html", form=form, course=course)
-
-    return redirect(url_for('main.list_courses'))
+    return render_template('edit_course.html', form=form, course=course)
 
 
-@main_blueprint.route('/course/<int:course_id>/delete', methods=['POST'])
+@main_blueprint.route('/course/<int:course_id>/delete', methods=['GET', 'POST'])
 @admin_required
 def delete_course(course_id):
     course = Course.query.get_or_404(course_id)
@@ -1065,7 +1062,7 @@ def delete_course(course_id):
 @main_blueprint.route('/course/add', methods=['GET', 'POST'])
 @admin_required
 def add_course():
-    form = EditCourseForm()
+    form = EditCourseForm()  
 
     if form.validate_on_submit():
         new_course = Course(
@@ -1082,10 +1079,9 @@ def add_course():
         flash('New course added!', 'success')
         return redirect(url_for('main.list_courses'))
 
-    if request.headers.get("X-Requested-With") =="XMLHttpRequest":
-        return render_template("add_course_modal.html", form=form)
+    # No need for XMLHttpRequest check anymore since we are NOT using modals
+    return render_template("add_course.html", form=form)
 
-    return redirect('main.list_courses')
 
 #canvas routes
 @main_blueprint.route('/connect-canvas', methods=['GET', 'POST'])
@@ -1336,9 +1332,6 @@ def browse_courses():
 @main_blueprint.route("/generated-study-plan", methods=["GET", "POST"])
 @login_required
 def generated_study_plan():
-    from google.generativeai import GenerativeModel
-    from sqlalchemy import cast, Date
-    from eduplan.models import assignments, StudyPreference, SavedStudyPlan
 
     regenerate = request.args.get("regenerate") == "true"
 
@@ -1476,3 +1469,52 @@ def categorize_assignment(name, description=""):
         if any(kw in name or kw in description for kw in keywords):
             return category
     return "assignment"
+
+
+
+@main_blueprint.route("/ai-study-time", methods=["GET"])
+@login_required
+def ai_study_time():
+    # Get the saved study plan
+    saved_plan = SavedStudyPlan.query.filter_by(user_id=current_user.id).first()
+    if not saved_plan or not saved_plan.content:
+        return jsonify({"error": "No study plan found."}), 404
+
+    # Get the study preferences
+    preferences = StudyPreference.query.filter_by(user_id=current_user.id).first()
+    if not preferences or not preferences.preferred_study_hours:
+        return jsonify({"error": "No preferred study time found."}), 404
+
+    preferred_range = preferences.preferred_study_hours  # e.g., "16:00–22:00"
+
+    # Build prompt to AI
+    prompt = f"""
+You are a helpful academic assistant.
+
+Here is the student's current study plan (one task per day):
+
+{saved_plan.content}
+
+The student prefers to study daily between {preferred_range}.
+
+1. Choose one consistent 2-hour block **within that range** (e.g., 18:00–20:00).
+2. Assign that time block to each task in the plan.
+
+Format the final output EXACTLY like this:
+- April 28 (18:00–20:00): Study for MATH test
+- April 29 (18:00–20:00): Finish CS project
+
+Only return the updated plan in that format. Do not include any explanation or extra text.
+"""
+
+
+    try:
+        from google.generativeai import GenerativeModel
+        genai.configure(api_key=gemini_key)
+        model = GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
+        revised_plan = response.text.strip()
+    except Exception as e:
+        return jsonify({"error": "AI generation failed", "details": str(e)}), 500
+
+    return jsonify({"study_plan_with_times": revised_plan})

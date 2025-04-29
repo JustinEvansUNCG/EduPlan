@@ -143,3 +143,14 @@ class PreferencesForm(FlaskForm):
 
     preferred_study_hours = IntegerField("Preferred Hours of Study per Day", validators=[InputRequired()])
     submit = SubmitField("Save Preferences")
+
+
+class AddCourseForm(FlaskForm):
+    course_name = StringField('Course Name', validators=[DataRequired()])
+    course_code = StringField('Course Code', validators=[DataRequired()])
+    department = StringField('Department', validators=[DataRequired()])
+    description = StringField('Description')
+    prerequisites = StringField('Prerequisites')
+    corequisites = StringField('Corequisites')
+    credits = IntegerField('Credits', validators=[DataRequired()])
+    submit = SubmitField('Add Course')
