@@ -586,6 +586,14 @@ const manipulate = () => {
                 document.getElementById("modify-start-time").value = "";
                 document.getElementById("modify-end-time").value = "";
 
+                
+                const event_title = event_object.innerHTML.split("<br>")[0];
+                console.log(event_title);
+
+                document.getElementById("modify-event-title").value = event_title;
+
+
+
                 var modal = document.getElementById("event-modify-popup");
                 modal.style.display = "block";
 
@@ -620,7 +628,7 @@ const manipulate = () => {
                     console.log(event_object.parentElement);
 
                     for (let j = 0; j < other_events_today.length; j++) {
-                        console.log(other_events_today[j].querySelector(".time-data"));
+                        //console.log(other_events_today[j].querySelector(".time-data"));
                         let event_date_data = other_events_today[j].querySelector(".time-data").innerHTML;
                         const event_date_array = event_date_data.split("-");
                         event_date_array[0] = event_date_array[0].substring(0, 5);
@@ -633,14 +641,13 @@ const manipulate = () => {
                         console.log(other_events_today);
                         if (event_date_array[0] <= start_time && event_date_array[1] >= start_time && other_events_today[j] != event_object) { //
                             let start_time_revised;
-                            console.log("foo2");
                             if (event_date_end[1] != "59") {
                                 start_time_revised = event_date_end[0] + ":" + String(parseInt(event_date_end[1]) + 1);
                             } else {
                                 start_time_revised = (event_date_end[0] + 1) + ":00";
                             }
 
-                            console.log(start_time_revised);
+                            //console.log(start_time_revised);
                             start_time_field.value = start_time_revised;
 
                         }
@@ -648,12 +655,6 @@ const manipulate = () => {
 
                         if (event_date_array[0] > start_time && event_date_array[1] < end_time && other_events_today[j] != event_object || event_date_array[0] <= end_time && event_date_array[1] >= end_time && other_events_today[j] != event_object) {
                             let end_time_revised;
-                            console.log(event_date_array[0]);
-                            console.log(start_time);
-                            console.log(event_date_array[1]);
-                            console.log(end_time);
-                            console.log(plan_id[j]);
-                            console.log(plan_id[i]);
                             
                             if (event_date_start[1] != "00") {
                                 end_time_revised = event_date_start[0] + ":" + (event_date_start[1] - 1);
