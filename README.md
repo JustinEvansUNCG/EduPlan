@@ -26,5 +26,6 @@ Calendar template:
 https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
 
 Bootstrap template was used for alerts:
+Bootstrap website: https://getbootstrap.com/
 Bootstrap template: https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css
 
