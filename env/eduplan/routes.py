@@ -191,7 +191,7 @@ def sign_up():
             name=form.name.data,
             email=form.email.data.lower(),
             password_hash=hash_password,
-            role='admin'
+            role='student'
         )
         try:
             db.session.add(user)
