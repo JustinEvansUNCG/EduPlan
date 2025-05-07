@@ -9,3 +9,7 @@ https://www.w3schools.com/howto/howto_css_modals.asp
 
 Calendar template:
 https://www.geeksforgeeks.org/how-to-design-a-simple-calendar-using-javascript/
+
+Bootstrap template was used for alerts:
+Bootstrap template:
+
