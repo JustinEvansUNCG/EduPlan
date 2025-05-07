@@ -160,11 +160,9 @@ let week = date.getDate() - date.getDay();
 const day = document.querySelector(".calendar-dates");
 
 
-const currdate = document
-    .querySelector(".calendar-current-date");
+const currdate = document.querySelector(".calendar-current-date");
 
-const prenexIcons = document
-    .querySelectorAll(".calendar-navigation span");
+const prenexIcons = document.querySelectorAll(".calendar-navigation span");
 
 const months = [
     "January",
@@ -195,26 +193,26 @@ const days = [
 
 
 
-// Function that generates and modifies the calendar
+// Function to update the calendar
 
 const manipulate = () => {
 
-    // Get the first day of the month
-    let dayone = new Date(year, month, 1).getDay();
+    // Day of the week at the start of the month
+    let first_day_of_month = new Date(year, month, 1).getDay();
 
-    // Get the last date of the month
-    let lastdate = new Date(year, month + 1, 0).getDate();
+    // Date at the start of the month
+    let first_date_of_month = new Date(year, month + 1, 0).getDate();
 
-    // Get the day of the last date of the month
-    let dayend = new Date(year, month, lastdate).getDay();
+    // Day of week at the end of the month
+    let last_day_of_month = new Date(year, month, first_date_of_month).getDay();
 
-    // Get the last date of the previous month
-    let monthlastdate = new Date(year, month, 0).getDate();
+    // Date at the end of the month
+    let last_date_of_month = new Date(year, month, 0).getDate();
 
+    
 
-
-    // Variable to store the generated calendar HTML
-    let lit = "";
+    // Calendar HTML stored here
+    let calendar = "";
 
     if (document.getElementById("month-button").classList.contains("selected")) {
 
@@ -224,16 +222,15 @@ const manipulate = () => {
         }
 
         // Loop to add the last dates of the previous month
-        for (let i = dayone; i > 0; i--) {
-            lit +=
-                `<li class="inactive">${monthlastdate - i + 1}</li>`;
+        for (let i = first_day_of_month; i > 0; i--) {
+            calendar +=
+                `<li class="inactive">${last_date_of_month - i + 1}</li>`;
 
         }
 
 
         // Loop to add the dates of the current month
-        for (let i = 1; i <= lastdate; i++) {
-            //console.log(year + "-" + month + "-" + i);
+        for (let i = 1; i <= first_date_of_month; i++) {
             //creates a temp variable which holds the current date
             let temp = year + "-";
             if (month + 1 < 10) {
@@ -256,12 +253,12 @@ const manipulate = () => {
                 && year === new Date().getFullYear()
                 ? "active"
                 : "";
-            lit += `<li class="${temp} ${isToday}">${i}<p class="assignment-count"></p></li>`;
+            calendar += `<li class="${temp} ${isToday}">${i}<p class="assignment-count"></p></li>`;
         }
 
         // Loop to add the first dates of the next month
-        for (let i = dayend; i < 6; i++) {
-            lit += `<li class="inactive">${i - dayend + 1}</li>`
+        for (let i = last_day_of_month; i < 6; i++) {
+            calendar += `<li class="inactive">${i - last_day_of_month + 1}</li>`
         }
 
         // Update the text of the current date element 
@@ -270,7 +267,7 @@ const manipulate = () => {
 
         // update the HTML of the dates element 
         // with the generated calendar
-        day.innerHTML = lit;
+        day.innerHTML = calendar;
 
 
         //else statement below handles the week view
@@ -324,8 +321,8 @@ const manipulate = () => {
 
         //add the days of the current week from a previous month
         if (week < 1) {
-            let i = monthlastdate + week;
-            for (i; i <= monthlastdate; i++) {
+            let i = last_date_of_month + week;
+            for (i; i <= last_date_of_month; i++) {
                 newdays += 1;
                 // Check if the current date is today
                 let isToday = i === currentDate.getDate()
@@ -335,7 +332,7 @@ const manipulate = () => {
                     : "";
 
                 //creates a temp variable which holds the current date
-                let temp = year + "-"// + (month) + "" + i;
+                let temp = year + "-"
 
                 if (month < 9) {
                     temp = temp + "0" + month + "-";
@@ -364,7 +361,7 @@ const manipulate = () => {
                 //this loop will generate all events that need to be displayed on the scheduler from a previous month
                 for (let j = 0; j < Object.keys(event_json).length; j++) {
                     if (event_json[j]["date"] === temp) {
-                        //lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
+                        
 
 
                         //lines below are used to find the offset an object should have on the scheduler
@@ -397,7 +394,7 @@ const manipulate = () => {
                 }
 
 
-                lit += `<li class="${temp} ${isToday}">${i}<p class="assignment-count"></p></li>`;
+                calendar += `<li class="${temp} ${isToday}">${i}<p class="assignment-count"></p></li>`;
 
             }
         }
@@ -405,7 +402,7 @@ const manipulate = () => {
 
 
         //adds the days of the current week
-        for (let i = week; i < week + 7 && i <= lastdate; i++) {
+        for (let i = week; i < week + 7 && i <= first_date_of_month; i++) {
             newdays += 1;
             if (i > 0) {
                 // Check if the current date is today
@@ -447,7 +444,7 @@ const manipulate = () => {
                 //this loop will generate all events that need to be displayed on the scheduler
                 for (let j = 0; j < Object.keys(event_json).length; j++) {
                     if (event_json[j]["date"] === temp) {
-                        //lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`;
+                      
 
                         //lines below are used to find the offset an object should have on the scheduler
                         const end_hour = parseInt(event_json[j]["end_time"].substring(0, 2));
@@ -480,7 +477,7 @@ const manipulate = () => {
                 }
 
 
-                lit += `<li class="${temp} ${isToday}">${i}<p class="assignment-count"></p></li>`;
+                calendar += `<li class="${temp} ${isToday}">${i}<p class="assignment-count"></p></li>`;
 
 
             }
@@ -527,7 +524,7 @@ const manipulate = () => {
             //this loop will generate all events that need to be displayed on the scheduler from the next month
             for (let j = 0; j < Object.keys(event_json).length; j++) {
                 if (event_json[j]["date"] === temp) {
-                    //lit += `<li class="${isToday}">${i + `<br>` + event_json[j]["event_description"]}</li>`
+                   
 
                     //lines below are used to find the offset an object should have on the scheduler
                     const end_hour = parseInt(event_json[j]["end_time"].substring(0, 2));
@@ -560,14 +557,14 @@ const manipulate = () => {
             }
 
 
-            lit += `<li class="${temp} ${isToday}">${i}<p class="assignment-count"></p></li>`;
+            calendar += `<li class="${temp} ${isToday}">${i}<p class="assignment-count"></p></li>`;
 
 
 
 
         }
 
-        day.innerHTML = lit;
+        day.innerHTML = calendar;
 
         //retrieves all events
         const event_objects = document.querySelectorAll(".flex-event");
@@ -708,7 +705,7 @@ const manipulate = () => {
                         close_event();
                         manipulate();
                     }
-                    ////////////////////////
+                   
                     await func();
                 })
 
@@ -1011,14 +1008,13 @@ prenexIcons.forEach(icon => {
             // Check if the month is out of range
             if (month < 0 || month > 11) {
 
-                // Set the date to the first day of the 
-                // month with the new year
+                // Sets the first date of a new month
                 date = new Date(year, month, new Date().getDate());
 
-                // Set the year to the new year
+                // Changes current year
                 year = date.getFullYear();
 
-                // Set the month to the new month
+                // Changes current month
                 month = date.getMonth();
 
                 week = - new Date(year, month, 1).getDay() + 1;
@@ -1053,23 +1049,23 @@ prenexIcons.forEach(icon => {
             // or "calendar-next"
 
             // Get the last date of the month
-            let lastdate = new Date(year, month + 1, 0).getDate();
-            let dayend = new Date(year, month, lastdate).getDay();
+            let first_date_of_month = new Date(year, month + 1, 0).getDate();
+            let last_day_of_month = new Date(year, month, first_date_of_month).getDay();
 
             // Get the last date of the previous month
-            let monthlastdate = new Date(year, month, 0).getDate();
+            let last_date_of_month = new Date(year, month, 0).getDate();
 
             // Get the day of the last date of the month
 
 
-            // Check if the month is out of range
-            if (week < 0 || week + 7 > lastdate) {
-                // week - lastdate
-                week = icon.id === "calendar-prev" ? monthlastdate + week : week - lastdate;
+            // Checks if the month is out of range
+            if (week < 0 || week + 7 > first_date_of_month) {
+                // week - first_date_of_month
+                week = icon.id === "calendar-prev" ? last_date_of_month + week : week - first_date_of_month;
                 //change month to reflect the new month
                 month = icon.id === "calendar-prev" ? month - 1 : month + 1;
-                lastdate = new Date(year, month + 1, 0).getDate();
-                dayend = new Date(year, month, lastdate).getDay();
+                first_date_of_month = new Date(year, month + 1, 0).getDate();
+                last_day_of_month = new Date(year, month, first_date_of_month).getDay();
 
 
                 if (month < 0 || month > 11) {
@@ -1092,7 +1088,7 @@ prenexIcons.forEach(icon => {
 
                 // Set the date to the first day of the 
                 // month with the new year
-                date = new Date(year, month, lastdate);
+                date = new Date(year, month, first_date_of_month);
                 console.log(date);
 
                 // Set the year to the new year
